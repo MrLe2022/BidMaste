@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Equipment } from '../types';
 import * as Storage from '../services/storage';
-import { Plus, Trash2, Upload, Search, FileDown, FileSpreadsheet, Pencil, Lock, Layers, ChevronRight, Home } from 'lucide-react';
+import { Plus, Trash2, Upload, Search, FileDown, FileSpreadsheet, Pencil, Lock, Layers, ChevronRight, Home, CheckSquare, Square, MoreVertical, AlertOctagon, XCircle } from 'lucide-react';
 import Modal from '../components/Modal';
 import { readExcel, exportToExcel } from '../utils/excelHelper';
 
@@ -12,6 +12,9 @@ const EquipmentPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
   
+  // Selection State
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   // Form State
   const [formData, setFormData] = useState<Partial<Equipment>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -25,6 +28,10 @@ const EquipmentPage: React.FC = () => {
   const isAdmin = currentUser?.role === 'admin';
 
   useEffect(() => {
+    loadData();
+  }, [currentUser]);
+
+  const loadData = () => {
     const allItems = Storage.getEquipment();
     
     // Filter based on permissions (Groups)
@@ -32,11 +39,12 @@ const EquipmentPage: React.FC = () => {
         setItems(allItems);
     } else {
         const allowedGroups = currentUser?.allowedGroups || [];
-        // Nếu item chưa có group, mặc định coi là "Chung" hoặc ẩn đi. Ở đây ta lọc chính xác.
         const allowedItems = allItems.filter(item => allowedGroups.includes(item.group || 'Chung'));
         setItems(allowedItems);
     }
-  }, [currentUser]);
+    // Reset selection on reload
+    setSelectedIds(new Set());
+  };
 
   // Get unique groups for filter and suggestions
   const uniqueGroups = Array.from(new Set(items.map(i => i.group || 'Chung'))).sort();
@@ -44,7 +52,6 @@ const EquipmentPage: React.FC = () => {
   const handleSave = () => {
     if (!formData.code || !formData.name) return;
     
-    // Refresh list to make sure we have latest
     const allItems = Storage.getEquipment();
     let updated: Equipment[];
     const itemGroup = formData.group || 'Chung';
@@ -71,14 +78,7 @@ const EquipmentPage: React.FC = () => {
     }
 
     Storage.saveEquipment(updated);
-    
-    // Update local state respecting permissions
-    if (isAdmin) {
-        setItems(updated);
-    } else {
-        const allowedGroups = currentUser?.allowedGroups || [];
-        setItems(updated.filter(item => allowedGroups.includes(item.group || 'Chung')));
-    }
+    loadData(); // Reload to update UI and permissions
     closeModal();
   };
 
@@ -108,10 +108,84 @@ const EquipmentPage: React.FC = () => {
       Storage.saveEquipment(updated);
       Storage.logActivity("Xóa", `Xóa thiết bị ${itemToDelete?.code}`);
 
-      // Update UI
-      setItems(prev => prev.filter(i => i.id !== id));
+      loadData();
     }
   };
+
+  // --- BULK ACTIONS ---
+
+  const handleSelectAll = () => {
+      if (selectedIds.size === filteredItems.length && filteredItems.length > 0) {
+          setSelectedIds(new Set());
+      } else {
+          const newSet = new Set<string>();
+          filteredItems.forEach(i => newSet.add(i.id));
+          setSelectedIds(newSet);
+      }
+  };
+
+  const toggleSelect = (id: string) => {
+      const newSet = new Set(selectedIds);
+      if (newSet.has(id)) {
+          newSet.delete(id);
+      } else {
+          newSet.add(id);
+      }
+      setSelectedIds(newSet);
+  };
+
+  const handleDeleteSelected = () => {
+      if (selectedIds.size === 0) return;
+      if (confirm(`Bạn có chắc chắn muốn xóa ${selectedIds.size} thiết bị đang chọn không?`)) {
+          const allItems = Storage.getEquipment();
+          const updated = allItems.filter(i => !selectedIds.has(i.id));
+          
+          Storage.saveEquipment(updated);
+          Storage.logActivity("Xóa nhiều", `Đã xóa ${selectedIds.size} thiết bị`);
+          loadData();
+      }
+  };
+
+  const handleDeleteGroup = () => {
+      if (!isAdmin) return;
+      if (!groupFilter) {
+          alert("Vui lòng chọn một Nhóm trên thanh lọc trước để thực hiện xóa theo nhóm.");
+          return;
+      }
+      
+      // Calculate count first
+      const allItems = Storage.getEquipment();
+      const itemsInGroup = allItems.filter(i => (i.group || 'Chung') === groupFilter);
+      
+      if (itemsInGroup.length === 0) {
+          alert("Nhóm này không có thiết bị nào.");
+          return;
+      }
+
+      if (confirm(`CẢNH BÁO: Bạn sắp xóa TOÀN BỘ ${itemsInGroup.length} thiết bị thuộc nhóm "${groupFilter}".\n\nHành động này không thể hoàn tác. Bạn có chắc chắn không?`)) {
+          const updated = allItems.filter(i => (i.group || 'Chung') !== groupFilter);
+          Storage.saveEquipment(updated);
+          Storage.logActivity("Xóa Nhóm", `Đã xóa nhóm ${groupFilter}`);
+          loadData();
+          alert("Đã xóa nhóm thành công.");
+      }
+  };
+
+  const handleDeleteAll = () => {
+      if (!isAdmin) return;
+      const confirm1 = confirm("CẢNH BÁO NGUY HIỂM: Bạn đang yêu cầu XÓA TẤT CẢ dữ liệu trong Danh mục Thiết bị.\n\nBạn có thực sự muốn tiếp tục?");
+      if (confirm1) {
+          const confirm2 = confirm("XÁC NHẬN LẦN CUỐI: Toàn bộ dữ liệu thiết bị sẽ bị mất vĩnh viễn.\n\nNhấn OK để xóa sạch.");
+          if (confirm2) {
+              Storage.saveEquipment([]);
+              Storage.logActivity("Xóa Tất cả", "Đã xóa toàn bộ danh mục thiết bị");
+              loadData();
+              alert("Đã xóa sạch dữ liệu.");
+          }
+      }
+  };
+
+  // --- IMPORT ACTIONS ---
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -146,8 +220,7 @@ const EquipmentPage: React.FC = () => {
       Storage.saveEquipment(updated);
       Storage.logActivity("Nhập Excel", `Nhập danh mục: ${newItems.length} thiết bị`);
 
-      if (isAdmin) setItems(updated);
-      
+      loadData();
       setIsImportModalOpen(false);
       setImportFile(null);
       alert(`Đã nhập thành công ${newItems.length} thiết bị.`);
@@ -180,7 +253,7 @@ const EquipmentPage: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           
           {/* Toolbar */}
-          <div className="p-5 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white">
+          <div className="p-5 border-b border-gray-200 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white">
             <div>
               <h2 className="text-xl font-bold text-gray-800">Danh mục Thiết bị</h2>
               <p className="text-sm text-gray-500 mt-1">
@@ -189,51 +262,92 @@ const EquipmentPage: React.FC = () => {
             </div>
             
             {isAdmin && (
-                <div className="flex gap-3">
-                <button 
-                    onClick={() => setIsImportModalOpen(true)}
-                    className="flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition shadow-sm font-medium"
-                >
-                    <Upload className="w-4 h-4 mr-2" /> Nhập Excel
-                </button>
-                <button 
-                    onClick={() => {
-                        setEditingId(null);
-                        setFormData({});
-                        setIsModalOpen(true);
-                    }}
-                    className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm font-medium"
-                >
-                    <Plus className="w-4 h-4 mr-2" /> Thêm Mới
-                </button>
+                <div className="flex flex-wrap gap-3">
+                    <button 
+                        onClick={handleDeleteAll}
+                        className="flex items-center px-3 py-2 border border-red-200 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition shadow-sm font-medium text-sm"
+                        title="Xóa toàn bộ danh mục"
+                    >
+                        <AlertOctagon className="w-4 h-4 mr-2" /> Xóa Tất cả
+                    </button>
+                    <button 
+                        onClick={handleDeleteGroup}
+                        className={`flex items-center px-3 py-2 border rounded-lg transition shadow-sm font-medium text-sm ${groupFilter ? 'border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100 cursor-pointer' : 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'}`}
+                        title={groupFilter ? `Xóa toàn bộ nhóm "${groupFilter}"` : "Chọn 1 nhóm để xóa"}
+                        disabled={!groupFilter}
+                    >
+                        <Layers className="w-4 h-4 mr-2" /> Xóa theo Nhóm
+                    </button>
+                    <div className="w-px h-8 bg-gray-300 mx-1 hidden sm:block"></div>
+                    <button 
+                        onClick={() => setIsImportModalOpen(true)}
+                        className="flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition shadow-sm font-medium text-sm"
+                    >
+                        <Upload className="w-4 h-4 mr-2" /> Nhập Excel
+                    </button>
+                    <button 
+                        onClick={() => {
+                            setEditingId(null);
+                            setFormData({});
+                            setIsModalOpen(true);
+                        }}
+                        className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-sm font-medium text-sm"
+                    >
+                        <Plus className="w-4 h-4 mr-2" /> Thêm Mới
+                    </button>
                 </div>
             )}
           </div>
 
-          {/* Filters Bar */}
+          {/* Filters Bar & Bulk Actions */}
           <div className="p-4 bg-gray-50 border-b border-gray-200 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-              <div className="md:col-span-8 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input 
-                  type="text"
-                  placeholder="Tìm kiếm theo mã hoặc tên thiết bị..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              <div className="md:col-span-4 relative">
-                 <Layers className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                 <select
-                    className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none appearance-none bg-white cursor-pointer hover:border-blue-400 transition-colors"
-                    value={groupFilter}
-                    onChange={(e) => setGroupFilter(e.target.value)}
-                 >
-                     <option value="">-- Tất cả Nhóm --</option>
-                     {uniqueGroups.map(g => <option key={g} value={g}>{g}</option>)}
-                 </select>
-                 <ChevronRight className="absolute right-3 top-1/2 transform -translate-y-1/2 rotate-90 text-gray-400 w-4 h-4 pointer-events-none" />
-              </div>
+              {selectedIds.size > 0 ? (
+                  <div className="md:col-span-12 flex items-center justify-between bg-blue-100 border border-blue-200 text-blue-800 px-4 py-2 rounded-lg animate-in fade-in duration-200">
+                      <div className="font-medium flex items-center">
+                          <CheckSquare className="w-5 h-5 mr-2" />
+                          Đã chọn {selectedIds.size} thiết bị
+                      </div>
+                      <div className="flex gap-3">
+                          <button 
+                            onClick={() => setSelectedIds(new Set())}
+                            className="text-sm text-blue-600 hover:text-blue-800 underline"
+                          >
+                              Bỏ chọn
+                          </button>
+                          <button 
+                            onClick={handleDeleteSelected}
+                            className="flex items-center px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition shadow-sm text-sm font-bold"
+                          >
+                              <Trash2 className="w-4 h-4 mr-2" /> Xóa {selectedIds.size} mục
+                          </button>
+                      </div>
+                  </div>
+              ) : (
+                  <>
+                    <div className="md:col-span-8 relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input 
+                        type="text"
+                        placeholder="Tìm kiếm theo mã hoặc tên thiết bị..."
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                    <div className="md:col-span-4 relative">
+                        <Layers className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <select
+                            className="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none appearance-none bg-white cursor-pointer hover:border-blue-400 transition-colors"
+                            value={groupFilter}
+                            onChange={(e) => setGroupFilter(e.target.value)}
+                        >
+                            <option value="">-- Tất cả Nhóm --</option>
+                            {uniqueGroups.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                        <ChevronRight className="absolute right-3 top-1/2 transform -translate-y-1/2 rotate-90 text-gray-400 w-4 h-4 pointer-events-none" />
+                    </div>
+                  </>
+              )}
           </div>
 
           {/* List Table */}
@@ -241,6 +355,19 @@ const EquipmentPage: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-4 py-4 w-12 text-center">
+                      <button 
+                        onClick={handleSelectAll}
+                        className="text-gray-500 hover:text-blue-600 focus:outline-none"
+                        title="Chọn tất cả"
+                      >
+                          {selectedIds.size > 0 && selectedIds.size === filteredItems.length ? (
+                              <CheckSquare className="w-5 h-5 text-blue-600" />
+                          ) : (
+                              <Square className="w-5 h-5" />
+                          )}
+                      </button>
+                  </th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-32">Mã VT/TB</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tên Vật tư / Thiết bị</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-40">Nhóm</th>
@@ -251,49 +378,64 @@ const EquipmentPage: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                       {isAdmin ? "Chưa có dữ liệu. Hãy thêm mới hoặc nhập từ Excel." : "Bạn chưa được cấp quyền xem nhóm thiết bị nào hoặc không tìm thấy kết quả."}
                     </td>
                   </tr>
                 ) : (
-                  filteredItems.map((item) => (
-                    <tr key={item.id} className="hover:bg-blue-50/50 transition-colors duration-150 group">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600 font-mono">{item.code}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{item.name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <span className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium border border-gray-200">
-                              {item.group || 'Chung'}
-                          </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                          {item.specs ? item.specs : <span className="text-gray-300 italic">—</span>}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        {isAdmin ? (
-                            <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button 
-                                onClick={() => handleEdit(item)} 
-                                className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-md transition-all"
-                                title="Chỉnh sửa"
-                              >
-                                  <Pencil className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleDelete(item.id)} 
-                                className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-md transition-all"
-                                title="Xóa"
-                              >
-                                  <Trash2 className="w-4 h-4" />
-                              </button>
-                          </div>
-                        ) : (
-                            <span className="text-gray-400 text-xs flex items-center justify-end">
-                                <Lock className="w-3 h-3 mr-1"/> Chỉ xem
+                  filteredItems.map((item) => {
+                    const isSelected = selectedIds.has(item.id);
+                    return (
+                        <tr key={item.id} className={`transition-colors duration-150 group ${isSelected ? 'bg-blue-50' : 'hover:bg-blue-50/50'}`}>
+                        <td className="px-4 py-4 text-center">
+                            <button 
+                                onClick={() => toggleSelect(item.id)}
+                                className="focus:outline-none"
+                            >
+                                {isSelected ? (
+                                    <CheckSquare className="w-5 h-5 text-blue-600" />
+                                ) : (
+                                    <Square className="w-5 h-5 text-gray-300 group-hover:text-gray-400" />
+                                )}
+                            </button>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600 font-mono">{item.code}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{item.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <span className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium border border-gray-200">
+                                {item.group || 'Chung'}
                             </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                            {item.specs ? item.specs : <span className="text-gray-300 italic">—</span>}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            {isAdmin ? (
+                                <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button 
+                                    onClick={() => handleEdit(item)} 
+                                    className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-md transition-all"
+                                    title="Chỉnh sửa"
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                </button>
+                                <button 
+                                    onClick={() => handleDelete(item.id)} 
+                                    className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-md transition-all"
+                                    title="Xóa"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                            ) : (
+                                <span className="text-gray-400 text-xs flex items-center justify-end">
+                                    <Lock className="w-3 h-3 mr-1"/> Chỉ xem
+                                </span>
+                            )}
+                        </td>
+                        </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>
