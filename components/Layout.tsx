@@ -86,7 +86,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
   ] as const;
 
   return (
-    // THAY ĐỔI QUAN TRỌNG: print:block print:h-auto để reset chiều cao khi in
+    // THAY ĐỔI: print:block print:h-auto để reset chiều cao khi in
     <div className="min-h-screen bg-gray-50 flex flex-col relative print:block print:h-auto print:overflow-visible">
       {/* Toast Notification */}
       {showShareToast && (
@@ -212,7 +212,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                   <p className="font-bold mb-1">Cách khắc phục lỗi "Sheet trống" hoặc "Lỗi kết nối":</p>
                   <ul className="list-disc ml-5 space-y-1">
                       <li>Đảm bảo bạn đã chọn <b>"Who has access: Anyone"</b> khi deploy.</li>
-                      <li className="font-bold text-red-600">QUAN TRỌNG: Nếu bạn sửa code Script, bạn PHẢI nhấn "Deploy" -> "New Deployment" để tạo bản mới. URL cũ sẽ không chạy code mới.</li>
+                      {/* FIX: Replaced -> with &rarr; to avoid JSX parsing error */}
+                      <li className="font-bold text-red-600">QUAN TRỌNG: Nếu bạn sửa code Script, bạn PHẢI nhấn "Deploy" &rarr; "New Deployment" để tạo bản mới. URL cũ sẽ không chạy code mới.</li>
                   </ul>
               </div>
               
