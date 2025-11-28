@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ĐẤU THẦU VẬT TƯ - THIẾT BỊ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+      @media print {
+        /* 1. Thiết lập trang in */
+        @page {
+          margin: 10mm;
+          size: auto;
+        }
+        
+        /* 2. Reset Layout của ứng dụng SPA (React) */
+        body, html, #root, main, .min-h-screen {
+          background-color: white !important;
+          color: black !important;
+          height: auto !important;
+          min-height: auto !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+          display: block !important;
+          position: static !important;
+        }
+
+        /* 3. Ẩn các thành phần giao diện không cần thiết */
+        header, nav, button, .no-print, .fixed, .sticky {
+          display: none !important;
+        }
+
+        /* 4. Mở rộng khung nội dung */
+        .max-w-7xl {
+          max-width: 100% !important;
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+        }
+
+        /* 5. Đảm bảo màu nền và border được in ra */
+        * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          box-shadow: none !important;
+        }
+
+        /* 6. Xử lý ngắt trang thông minh */
+        .page-break, .pdf-item {
+          break-inside: avoid;
+          page-break-inside: avoid;
+          margin-bottom: 20px;
+          border: 1px solid #ddd !important;
+          display: block !important; /* Đảm bảo block để không bị flex làm hỏng */
+        }
+        
+        tr, td, th {
+          page-break-inside: avoid !important;
+        }
+
+        thead {
+          display: table-header-group; /* Lặp lại header khi sang trang mới */
+        }
+
+        /* 7. Sửa lỗi biểu đồ Recharts khi in */
+        .recharts-responsive-container {
+            width: 100% !important;
+            height: 350px !important; /* Chiều cao cố định để render được trên giấy */
+            max-height: 350px !important;
+        }
+        
+        /* 8. Tinh chỉnh bảng */
+        table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        th, td {
+            border: 1px solid #000 !important; /* Viền đen rõ ràng cho máy in */
+            padding: 4px 8px !important;
+            font-size: 10pt !important;
+        }
+        
+        /* Hiển thị Footer bản quyền khi in */
+        footer {
+            display: block !important;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            border: none !important;
+            text-align: center;
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.0",
+    "xlsx": "https://esm.sh/xlsx@0.18.5",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "vite": "https://aistudiocdn.com/vite@^7.2.4"
+  }
+}
+</script>
+</head>
+  <body class="bg-gray-50 text-gray-900 font-sans antialiased">
+    <div id="root"></div>
+  </body>
+</html>
