@@ -26,8 +26,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center p-4">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="bg-blue-600 p-8 text-center">
-          <h1 className="text-3xl font-bold text-white mb-2">ĐẤU THẦU VẬT TƯ</h1>
-          <p className="text-blue-100">Hệ thống quản lý & Phân tích báo giá</p>
+          <h1 className="text-2xl font-bold text-white mb-2">THEO DÕI MUA SẮM VẬT TƯ - THIẾT BỊ</h1>
+          <p className="text-blue-100 text-sm">Quản lý chuyên nghiệp danh mục, báo giá, lựa chọn nhà cung cấp, lập bảng đề nghị dự trừ vật tư thiết bị cho bộ phận QLCM công ty Minh Phát - Khánh An</p>
         </div>
         
         <div className="p-8">

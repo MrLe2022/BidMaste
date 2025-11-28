@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import * as Storage from '../services/storage';
 import { 
   BookOpen, Package, FileText, Calculator, 
   ClipboardList, Cloud, UserCog, CheckCircle2, 
@@ -7,6 +8,9 @@ import {
 
 const HelpPage: React.FC = () => {
   const [activeSection, setActiveSection] = useState('overview');
+  
+  const currentUser = Storage.getCurrentUser();
+  const isAdmin = currentUser?.role === 'admin';
 
   const sections = [
     {
@@ -232,6 +236,7 @@ const HelpPage: React.FC = () => {
     }
   ];
 
+  const visibleSections = sections.filter(s => s.id !== 'system' || isAdmin);
   const activeContent = sections.find(s => s.id === activeSection)?.content;
 
   return (
@@ -242,7 +247,7 @@ const HelpPage: React.FC = () => {
           <h2 className="font-bold text-gray-700 uppercase text-xs tracking-wider">Mục lục Hướng dẫn</h2>
         </div>
         <nav className="p-2 space-y-1">
-          {sections.map(section => (
+          {visibleSections.map(section => (
             <button
               key={section.id}
               onClick={() => setActiveSection(section.id)}

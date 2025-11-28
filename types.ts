@@ -3,6 +3,7 @@ export interface Equipment {
   code: string;
   name: string;
   specs: string;
+  group: string; // Nhóm thiết bị (VD: Văn phòng phẩm, Máy móc, Hóa chất...)
 }
 
 export interface Quotation {
@@ -59,4 +60,13 @@ export interface User {
   password: string;
   fullName: string;
   role: 'admin' | 'user';
+  allowedGroups?: string[]; // Danh sách NHÓM thiết bị được phép truy cập (thay vì mã cụ thể)
+}
+
+export interface ActivityLog {
+  id: string;
+  timestamp: string;
+  username: string;
+  action: string; // "Thêm", "Sửa", "Xóa", "Đăng nhập"...
+  details: string;
 }

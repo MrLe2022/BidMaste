@@ -77,7 +77,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, curre
 
   return (
     // THAY ĐỔI: print:block print:h-auto để reset chiều cao khi in
-    <div className="min-h-screen bg-gray-50 flex flex-col relative print:block print:h-auto print:overflow-visible">
+    <div className="min-h-screen bg-gray-100 flex flex-col relative print:block print:h-auto print:overflow-visible">
       {/* Toast Notification */}
       {showShareToast && (
           <div className="fixed top-28 right-4 z-50 animate-bounce bg-gray-800 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 transition-all no-print">
@@ -91,7 +91,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, curre
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="flex justify-between h-full">
             <div className="flex items-center">
-              <span className="text-3xl font-bold text-gray-900">ĐẤU THẦU VẬT TƯ</span>
+              <span className="text-3xl font-bold text-gray-900 tracking-tight">THEO DÕI MUA SẮM VẬT TƯ - THIẾT BỊ</span>
             </div>
             
             <div className="flex items-center gap-4">
@@ -103,7 +103,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, curre
                     onClick={() => onTabChange(item.id as any)}
                     className={`inline-flex items-center px-1 pt-1 border-b-4 text-sm font-medium h-full transition-colors ${
                         activeTab === item.id
-                        ? 'border-blue-500 text-gray-900 font-bold'
+                        ? 'border-blue-600 text-blue-700 font-bold'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                     >
@@ -201,7 +201,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, curre
 
       {/* Main Content */}
       {/* THAY ĐỔI: print:max-w-none print:p-0 để tràn trang */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 print:p-0 print:max-w-none print:w-full print:block">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 print:p-0 print:max-w-none print:w-full print:block">
         {children}
       </main>
 

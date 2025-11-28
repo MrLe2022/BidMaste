@@ -27,7 +27,7 @@ const QuotationsPage: React.FC = () => {
   const [filterBrand, setFilterBrand] = useState('');
 
   // Sort State
-  const [sortKey, setSortKey] = useState<SortKey>('itemCode'); // Default sort by Item Code
+  const [sortKey, setSortKey] = useState<SortKey>('itemCode');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   
   // Form State
@@ -39,10 +39,28 @@ const QuotationsPage: React.FC = () => {
   const [importPreview, setImportPreview] = useState<ImportPreview[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Permission
+  const currentUser = Storage.getCurrentUser();
+  const isAdmin = currentUser?.role === 'admin';
+
   useEffect(() => {
-    setQuotes(Storage.getQuotes());
-    setEquipment(Storage.getEquipment());
-  }, []);
+    const allQuotes = Storage.getQuotes();
+    const allEquipment = Storage.getEquipment();
+
+    if (isAdmin) {
+        setQuotes(allQuotes);
+        setEquipment(allEquipment);
+    } else {
+        const allowedGroups = currentUser?.allowedGroups || [];
+        // Filter equipment first
+        const allowedEq = allEquipment.filter(e => allowedGroups.includes(e.group || 'Chung'));
+        setEquipment(allowedEq);
+        
+        // Then filter quotes based on allowed equipment codes
+        const allowedCodes = allowedEq.map(e => e.code);
+        setQuotes(allQuotes.filter(q => allowedCodes.includes(q.itemCode)));
+    }
+  }, [currentUser]);
 
   // Derive unique lists for dropdowns
   const uniqueSuppliers = useMemo(() => {
@@ -61,11 +79,12 @@ const QuotationsPage: React.FC = () => {
         return;
     }
 
+    const allQuotes = Storage.getQuotes(); // Get fresh full list
     let updated: Quotation[];
     
     if (editingId) {
         // Update existing
-        updated = quotes.map(q => {
+        updated = allQuotes.map(q => {
             if (q.id === editingId) {
                 return {
                     ...q,
@@ -81,6 +100,7 @@ const QuotationsPage: React.FC = () => {
             }
             return q;
         });
+        Storage.logActivity("Sửa Báo giá", `${formData.supplierName} - ${formData.itemCode}`);
     } else {
          // Create new
          const newQuote: Quotation = {
@@ -94,11 +114,20 @@ const QuotationsPage: React.FC = () => {
             techScoreReason: formData.techScoreReason || '',
             notes: formData.notes || '',
         };
-        updated = [...quotes, newQuote];
+        updated = [...allQuotes, newQuote];
+        Storage.logActivity("Thêm Báo giá", `${formData.supplierName} - ${formData.itemCode}`);
     }
 
-    setQuotes(updated);
     Storage.saveQuotes(updated);
+    
+    // Update local state respecting permission
+    if (isAdmin) {
+        setQuotes(updated);
+    } else {
+        const allowedCodes = equipment.map(e => e.code);
+        setQuotes(updated.filter(q => allowedCodes.includes(q.itemCode)));
+    }
+    
     closeModal();
   };
 
@@ -132,21 +161,35 @@ const QuotationsPage: React.FC = () => {
   }
 
   const handleQuickUpdate = (id: string, field: keyof Quotation, value: any) => {
-    const updated = quotes.map(q => {
+    // Only update in filtered view for UX, then save full state
+    const allQuotes = Storage.getQuotes();
+    const updated = allQuotes.map(q => {
         if (q.id === id) {
             return { ...q, [field]: value };
         }
         return q;
     });
-    setQuotes(updated);
+    
     Storage.saveQuotes(updated);
+    
+    // Update local UI
+    if (isAdmin) {
+        setQuotes(updated);
+    } else {
+        const allowedCodes = equipment.map(e => e.code);
+        setQuotes(updated.filter(q => allowedCodes.includes(q.itemCode)));
+    }
   };
 
   const handleDelete = (id: string) => {
     if (confirm('Bạn có chắc chắn muốn xóa báo giá này không?')) {
-      const updated = quotes.filter(q => q.id !== id);
-      setQuotes(updated);
+      const allQuotes = Storage.getQuotes();
+      const updated = allQuotes.filter(q => q.id !== id);
       Storage.saveQuotes(updated);
+      Storage.logActivity("Xóa Báo giá", `ID: ${id}`);
+
+      // Update UI
+      setQuotes(prev => prev.filter(q => q.id !== id));
     }
   };
 
@@ -161,7 +204,7 @@ const QuotationsPage: React.FC = () => {
             return;
         }
 
-        // Helper to find value by multiple possible headers (case-insensitive)
+        // Helper to find value by multiple possible headers
         const getValue = (row: any, ...candidates: string[]) => {
             const keys = Object.keys(row);
             for (const candidate of candidates) {
@@ -171,10 +214,11 @@ const QuotationsPage: React.FC = () => {
             return undefined;
         };
 
+        const allowedCodes = equipment.map(e => e.code);
+
         const previewData: ImportPreview[] = parsed.map((row, index) => {
-            const rowNum = index + 2; // Excel header is 1, data starts at 2
+            const rowNum = index + 2; 
             
-            // Flexible Column Mapping
             const supplier = getValue(row, 'supplier', 'supplier name', 'vendor', 'provider', 'suppliername', 'nhà cung cấp', 'tên nhà cung cấp');
             const code = getValue(row, 'code', 'item code', 'itemcode', 'part number', 'material code', 'equipment code', 'item', 'mã', 'mã vt', 'mã tb');
             const brand = getValue(row, 'brand', 'make', 'manufacturer', 'origin', 'model', 'brand name', 'hãng', 'xuất xứ', 'nhãn hiệu');
@@ -194,7 +238,6 @@ const QuotationsPage: React.FC = () => {
             let error = null;
             let price = 0;
 
-            // Validation Logic
             if (!supplier) {
                 isValid = false;
                 error = "Thiếu Tên Nhà cung cấp";
@@ -205,7 +248,6 @@ const QuotationsPage: React.FC = () => {
                 isValid = false;
                 error = "Thiếu Giá";
             } else {
-                // Parse Price
                 if (typeof priceVal === 'number') {
                     price = priceVal;
                 } else {
@@ -219,6 +261,14 @@ const QuotationsPage: React.FC = () => {
                 } else if (price <= 0) {
                     isValid = false;
                     error = `Giá phải lớn hơn 0 (Giá trị: ${priceVal})`;
+                }
+            }
+
+            // PERMISSION CHECK FOR IMPORT
+            if (isValid && !isAdmin) {
+                if (!allowedCodes.includes(code)) {
+                    isValid = false;
+                    error = "Bạn không có quyền nhập báo giá cho mã này (khác Nhóm được cấp quyền)";
                 }
             }
 
@@ -254,12 +304,19 @@ const QuotationsPage: React.FC = () => {
         return;
     }
 
-    // Clean up temporary props
     const newQuotes: Quotation[] = validRows.map(({ isValid, error, originalRow, ...quote }) => quote);
     
-    const updated = [...quotes, ...newQuotes];
-    setQuotes(updated);
+    const allQuotes = Storage.getQuotes();
+    const updated = [...allQuotes, ...newQuotes];
     Storage.saveQuotes(updated);
+    Storage.logActivity("Nhập Báo giá Excel", `${newQuotes.length} dòng`);
+    
+    if (isAdmin) {
+        setQuotes(updated);
+    } else {
+        const allowedCodes = equipment.map(e => e.code);
+        setQuotes(updated.filter(q => allowedCodes.includes(q.itemCode)));
+    }
     
     alert(`Đã nhập thành công ${newQuotes.length} dòng.`);
     closeImportModal();
@@ -283,7 +340,6 @@ const QuotationsPage: React.FC = () => {
       setFilterBrand('');
   };
 
-  // Logic: Filter -> Sort
   const processedQuotes = useMemo(() => {
     // 1. Filter
     let result = quotes.filter(q => {
@@ -306,8 +362,6 @@ const QuotationsPage: React.FC = () => {
         result.sort((a, b) => {
             let valA = a[sortKey];
             let valB = b[sortKey];
-            
-            // Handle undefined/null strings
             if (typeof valA === 'string') valA = valA.toLowerCase();
             if (typeof valB === 'string') valB = valB.toLowerCase();
 
@@ -320,7 +374,7 @@ const QuotationsPage: React.FC = () => {
     return result;
   }, [quotes, search, filterItem, filterSupplier, filterBrand, sortKey, sortDirection]);
 
-  // Helper for Sort Headers
+  // Helper for Sort Headers (Same as before)
   const SortableHeader = ({ label, sortKeyVal, className = '' }: { label: string, sortKeyVal: SortKey, className?: string }) => {
       const isActive = sortKey === sortKeyVal;
       return (
@@ -350,7 +404,9 @@ const QuotationsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Quản lý Báo giá</h2>
-          <p className="text-sm text-gray-500">Quản lý hồ sơ thầu, giá cả và điều chỉnh điểm kỹ thuật.</p>
+          <p className="text-sm text-gray-500">
+              {isAdmin ? "Quản lý toàn bộ báo giá." : "Chỉ hiển thị báo giá của các thiết bị thuộc nhóm bạn được phân quyền."}
+          </p>
         </div>
         <div className="flex gap-2">
             <button 
@@ -380,7 +436,6 @@ const QuotationsPage: React.FC = () => {
                Bộ lọc & Tìm kiếm
            </div>
            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                {/* Search Text */}
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <input 
@@ -392,7 +447,6 @@ const QuotationsPage: React.FC = () => {
                     />
                 </div>
 
-                {/* Filter Item */}
                 <select 
                     className="w-full py-2 px-3 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
                     value={filterItem}
@@ -404,8 +458,7 @@ const QuotationsPage: React.FC = () => {
                     ))}
                 </select>
 
-                {/* Filter Supplier */}
-                 <select 
+                <select 
                     className="w-full py-2 px-3 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
                     value={filterSupplier}
                     onChange={(e) => setFilterSupplier(e.target.value)}
@@ -416,7 +469,6 @@ const QuotationsPage: React.FC = () => {
                     ))}
                 </select>
 
-                {/* Filter Brand */}
                 <div className="flex gap-2">
                      <select 
                         className="w-full py-2 px-3 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
@@ -479,7 +531,7 @@ const QuotationsPage: React.FC = () => {
               {processedQuotes.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
-                    Chưa có báo giá nào phù hợp với bộ lọc.
+                    Chưa có báo giá nào phù hợp hoặc bạn chưa được phân quyền.
                   </td>
                 </tr>
               ) : (
@@ -509,7 +561,8 @@ const QuotationsPage: React.FC = () => {
                         <td className="px-6 py-4 text-sm">
                             <div className="text-gray-500">{quote.brand}</div>
                             <div className="font-mono font-medium text-gray-900 mt-1">
-                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(quote.price)}
+                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(quote.price / 1000)}
+                                <span className="text-xs text-gray-400"> k</span>
                                 {quote.vatIncluded ? <span className="text-xs text-blue-600 ml-1 font-sans">(VAT)</span> : <span className="text-xs text-gray-400 ml-1 font-sans">(Chưa VAT)</span>}
                             </div>
                         </td>
@@ -580,6 +633,7 @@ const QuotationsPage: React.FC = () => {
                         <option key={e.id} value={e.code}>{e.code} - {e.name}</option>
                     ))}
                 </select>
+                {equipment.length === 0 && <p className="text-xs text-red-500 mt-1">Bạn không có quyền thêm báo giá cho thiết bị nào.</p>}
             </div>
             <div>
                 <label className="block text-sm font-medium text-gray-700">Nhà cung cấp *</label>
@@ -687,6 +741,7 @@ const QuotationsPage: React.FC = () => {
       </Modal>
 
       <Modal isOpen={isImportModalOpen} onClose={closeImportModal} title="Nhập Báo giá từ Excel">
+        {/* Import Modal Content */}
         <div className="space-y-4">
             {!importPreview.length ? (
                 <>
@@ -718,6 +773,7 @@ const QuotationsPage: React.FC = () => {
                 </>
             ) : (
                 <div className="space-y-4">
+                     {/* Preview Table */}
                      <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
                          <span className="text-sm font-medium">
                              Tổng số dòng: <b>{importPreview.length}</b> 

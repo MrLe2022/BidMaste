@@ -15,13 +15,10 @@ const SupplyRequestPage: React.FC = () => {
     boardApproval: ''
   });
 
-  // View Mode: 'quantity' | 'cost'
   const [viewMode, setViewMode] = useState<'quantity' | 'cost'>('quantity');
 
-  // Form State for new/edit item
-  // CHANGE: selectedEqCodes is now an array for multi-select
   const [selectedEqCodes, setSelectedEqCodes] = useState<string[]>([]);
-  const [equipmentSearch, setEquipmentSearch] = useState(''); // Search for the multi-select list
+  const [equipmentSearch, setEquipmentSearch] = useState('');
 
   const [newItem, setNewItem] = useState<Partial<SupplyRequestItem>>({
     quantity: 1,
@@ -34,12 +31,25 @@ const SupplyRequestPage: React.FC = () => {
   });
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  // Permission
+  const currentUser = Storage.getCurrentUser();
+  const isAdmin = currentUser?.role === 'admin';
+
   useEffect(() => {
     setItems(Storage.getSupplyRequestItems());
     setMeta(Storage.getSupplyRequestMeta());
-    setEquipment(Storage.getEquipment());
+    
+    // Filter Equipment based on permissions (Groups)
+    const allEq = Storage.getEquipment();
+    if (isAdmin) {
+        setEquipment(allEq);
+    } else {
+        const allowedGroups = currentUser?.allowedGroups || [];
+        setEquipment(allEq.filter(e => allowedGroups.includes(e.group || 'Chung')));
+    }
+
     setQuotes(Storage.getQuotes());
-  }, []);
+  }, [currentUser]);
 
   // Filter equipment for the multi-select list
   const filteredEquipment = useMemo(() => {
@@ -55,7 +65,6 @@ const SupplyRequestPage: React.FC = () => {
     Storage.saveSupplyRequestMeta(newMeta);
   };
 
-  // Toggle selection logic
   const toggleSelectEquipment = (code: string) => {
       setSelectedEqCodes(prev => {
           if (prev.includes(code)) return prev.filter(c => c !== code);
@@ -65,17 +74,19 @@ const SupplyRequestPage: React.FC = () => {
 
   const toggleSelectAll = () => {
       if (selectedEqCodes.length === filteredEquipment.length && filteredEquipment.length > 0) {
-          setSelectedEqCodes([]); // Deselect all
+          setSelectedEqCodes([]); 
       } else {
-          setSelectedEqCodes(filteredEquipment.map(e => e.code)); // Select all currently filtered
+          setSelectedEqCodes(filteredEquipment.map(e => e.code)); 
       }
   };
 
   const handleAutoFillPrices = () => {
       if(!confirm('Tính năng này sẽ tự động điền GIÁ và NHÀ CUNG CẤP dựa trên kết quả trúng thầu (Hạng 1) từ phần Phân tích. Dữ liệu hiện tại của bạn trong bảng sẽ bị ghi đè. Tiếp tục?')) return;
 
+      // Note: We don't filter permissions here strictly because if they already added an item (maybe before permission revoke), they can still update price if data exists.
+      // But logically, they only see items they added.
+      
       const updatedItems = items.map(item => {
-          // Find winning quote for this item code
           const itemQuotes = quotes.filter(q => q.itemCode === item.itemCode && q.price > 0);
           if (itemQuotes.length === 0) return item;
 
@@ -108,7 +119,6 @@ const SupplyRequestPage: React.FC = () => {
   };
 
   const handleSaveItem = () => {
-    // Validation
     const total = Number(newItem.quantity);
     const p1 = Number(newItem.phase1Qty || 0);
     const p2 = Number(newItem.phase2Qty || 0);
@@ -121,11 +131,15 @@ const SupplyRequestPage: React.FC = () => {
     let updatedItems: SupplyRequestItem[] = [...items];
 
     if (editingId) {
-        // --- EDIT MODE (Single Item) ---
-        // In edit mode, selectedEqCodes should have exactly 1 item (set by handleEdit)
+        // Edit
         const code = selectedEqCodes[0]; 
         const eq = equipment.find(e => e.code === code);
-        if (!eq) return;
+        // If eq not found (permission revoked?), fallback to keeping existing name if possible or error
+        if (!eq) {
+            // Try to find in full list or just return
+             alert("Không tìm thấy thông tin thiết bị (hoặc bạn không còn quyền truy cập).");
+             return;
+        }
 
         const itemData: SupplyRequestItem = {
             id: editingId,
@@ -143,7 +157,7 @@ const SupplyRequestPage: React.FC = () => {
         updatedItems = items.map(item => item.id === editingId ? itemData : item);
 
     } else {
-        // --- ADD MODE (Bulk Add) ---
+        // Add
         if (selectedEqCodes.length === 0) {
             alert("Vui lòng chọn ít nhất một thiết bị.");
             return;
@@ -159,7 +173,7 @@ const SupplyRequestPage: React.FC = () => {
                     itemCode: eq.code,
                     itemName: eq.name,
                     itemSpecs: eq.specs,
-                    quantity: total, // Apply same quantity to all
+                    quantity: total,
                     phase1Qty: p1,
                     phase2Qty: p2,
                     notes: newItem.notes || '',
@@ -179,8 +193,17 @@ const SupplyRequestPage: React.FC = () => {
   };
 
   const handleEdit = (item: SupplyRequestItem) => {
+      // PERMISSION CHECK FOR EDITING SUPPLY REQUEST
+      if (!isAdmin) {
+          const itemInEqList = equipment.find(e => e.code === item.itemCode);
+          if (!itemInEqList) {
+              alert("Bạn không có quyền chỉnh sửa thiết bị này (không thuộc Nhóm được cấp quyền).");
+              return;
+          }
+      }
+
       setEditingId(item.id);
-      setSelectedEqCodes([item.itemCode]); // Set single selection for edit
+      setSelectedEqCodes([item.itemCode]);
       setNewItem({
           quantity: item.quantity,
           phase1Qty: item.phase1Qty,
@@ -190,7 +213,6 @@ const SupplyRequestPage: React.FC = () => {
           supplierName: item.supplierName,
           brand: item.brand
       });
-      // Clear search so the selected item is likely visible if we were to show the list (though we hide list in edit)
       setEquipmentSearch(''); 
       window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -202,6 +224,17 @@ const SupplyRequestPage: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
+    const itemToDelete = items.find(i => i.id === id);
+    if (!itemToDelete) return;
+
+    if (!isAdmin) {
+        const itemInEqList = equipment.find(e => e.code === itemToDelete.itemCode);
+        if (!itemInEqList) {
+            alert("Bạn không có quyền xóa thiết bị này.");
+            return;
+        }
+    }
+
     if(confirm("Bạn có chắc chắn muốn xóa dòng này không?")) {
         const updated = items.filter(i => i.id !== id);
         setItems(updated);
@@ -210,19 +243,18 @@ const SupplyRequestPage: React.FC = () => {
     }
   };
 
+  // ... rest of the file (Export, Print, Render Table) ...
   const handlePrint = () => {
     window.print();
   };
 
   const handleExportExcel = () => {
+    // ... export logic ...
     const data: any[] = [];
-    
-    // Title
     data.push({ 'Mã VT/TB': viewMode === 'cost' ? 'DỰ TOÁN CHI PHÍ MUA SẮM VẬT TƯ - THIẾT BỊ' : 'BẢNG ĐỀ NGHỊ DỰ TRÙ VẬT TƯ - THIẾT BỊ' });
     data.push({ 'Mã VT/TB': `Ngày lập: ${meta.createdDate}` });
     data.push({}); 
 
-    // Data
     items.forEach((item, index) => {
         const row: any = {
             'STT': index + 1,
@@ -279,7 +311,6 @@ const SupplyRequestPage: React.FC = () => {
   const totalCostAll = items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unitPrice || 0)), 0);
 
   return (
-    // THAY ĐỔI: print:block print:w-full để đảm bảo hiển thị khi in
     <div className="space-y-6 w-full print:w-full print:block">
       {/* Header (No Print) */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
@@ -413,7 +444,7 @@ const SupplyRequestPage: React.FC = () => {
                 </label>
                 
                 {editingId ? (
-                    // Edit Mode: Read-only input
+                    // Edit Mode
                     <input 
                         type="text" 
                         disabled 
@@ -421,9 +452,8 @@ const SupplyRequestPage: React.FC = () => {
                         className="block w-full border border-yellow-300 bg-yellow-50 rounded-md shadow-sm p-2 text-sm font-bold text-yellow-800"
                     />
                 ) : (
-                    // Add Mode: Multi-select Box
+                    // Add Mode
                     <div className="border border-gray-300 rounded-md overflow-hidden flex flex-col bg-white h-64 shadow-sm">
-                        {/* Search & Select All Header */}
                         <div className="p-2 border-b border-gray-200 bg-gray-50 space-y-2">
                             <div className="relative">
                                 <Search className="absolute left-2 top-2 w-4 h-4 text-gray-400" />
@@ -451,10 +481,11 @@ const SupplyRequestPage: React.FC = () => {
                             </div>
                         </div>
                         
-                        {/* List */}
                         <div className="flex-1 overflow-y-auto p-1 space-y-1">
                             {filteredEquipment.length === 0 ? (
-                                <p className="text-center text-xs text-gray-400 py-4">Không tìm thấy thiết bị</p>
+                                <p className="text-center text-xs text-gray-400 py-4">
+                                    {isAdmin ? "Không tìm thấy thiết bị" : "Không có thiết bị được phân quyền phù hợp"}
+                                </p>
                             ) : (
                                 filteredEquipment.map(eq => {
                                     const isSelected = selectedEqCodes.includes(eq.code);
@@ -480,7 +511,7 @@ const SupplyRequestPage: React.FC = () => {
                 )}
             </div>
             
-            {/* --- RIGHT COLUMN: INPUTS --- */}
+            {/* ... Right Column Inputs ... */}
             <div className="md:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2 grid grid-cols-3 gap-4">
                     <div>
@@ -570,7 +601,7 @@ const SupplyRequestPage: React.FC = () => {
       </div>
 
       {/* TABLE */}
-      {/* THAY ĐỔI: print:overflow-visible để in hết bảng */}
+      {/* ... Table rendering remains same ... */}
       <div className="bg-white shadow rounded-lg overflow-hidden border border-gray-200 print:shadow-none print:border-none print:overflow-visible">
           <table className="min-w-full divide-y divide-gray-200 print:divide-gray-500 w-full">
               <thead className="bg-gray-50 print:bg-gray-200">
@@ -682,7 +713,6 @@ const SupplyRequestPage: React.FC = () => {
                           </tr>
                       ))
                   )}
-                  {/* Totals Row for Cost View */}
                   {viewMode === 'cost' && items.length > 0 && (
                       <tr className="bg-gray-100 font-bold print:bg-transparent print:font-bold">
                           <td colSpan={5} className="px-4 py-3 text-right text-sm text-gray-900 border print:border-black uppercase">Tổng cộng (x1000)</td>
@@ -702,7 +732,7 @@ const SupplyRequestPage: React.FC = () => {
           </table>
       </div>
 
-      {/* SIGNATURE SECTION (VISIBLE IN PRINT ONLY) */}
+      {/* SIGNATURE SECTION */}
       <div className="hidden print:flex justify-between mt-12 px-8">
           <div className="text-center">
               <p className="font-bold uppercase text-sm mb-16">Người lập bảng</p>

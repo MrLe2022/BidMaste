@@ -1,4 +1,4 @@
-import { Equipment, Quotation, SupplyRequestItem, SupplyRequestMetadata, User } from '../types';
+import { Equipment, Quotation, SupplyRequestItem, SupplyRequestMetadata, User, ActivityLog } from '../types';
 
 const KEYS = {
   EQUIPMENT: 'bidmaster_equipment',
@@ -6,7 +6,8 @@ const KEYS = {
   SUPPLY_REQUEST_ITEMS: 'bidmaster_supply_items',
   SUPPLY_REQUEST_META: 'bidmaster_supply_meta',
   USERS: 'bidmaster_users',
-  CURRENT_SESSION: 'bidmaster_session'
+  CURRENT_SESSION: 'bidmaster_session',
+  ACTIVITY_LOGS: 'bidmaster_activity_logs'
 };
 
 // --- AUTH & USERS ---
@@ -52,12 +53,17 @@ export const login = (username: string, password: string): User | null => {
   const user = users.find(u => u.username === username && u.password === password);
   if (user) {
     localStorage.setItem(KEYS.CURRENT_SESSION, JSON.stringify(user));
+    logActivity('Đăng nhập', `Người dùng ${username} đăng nhập thành công`);
     return user;
   }
   return null;
 };
 
 export const logout = () => {
+  const user = getCurrentUser();
+  if (user) {
+    logActivity('Đăng xuất', `Người dùng ${user.username} đăng xuất`);
+  }
   localStorage.removeItem(KEYS.CURRENT_SESSION);
 };
 
@@ -140,10 +146,47 @@ export const saveSupplyRequestMeta = (meta: SupplyRequestMetadata) => {
   localStorage.setItem(KEYS.SUPPLY_REQUEST_META, JSON.stringify(meta));
 };
 
+// --- ACTIVITY LOGS ---
+
+export const getActivityLogs = (): ActivityLog[] => {
+  try {
+    const data = localStorage.getItem(KEYS.ACTIVITY_LOGS);
+    return data ? JSON.parse(data) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const saveActivityLogs = (logs: ActivityLog[]) => {
+  localStorage.setItem(KEYS.ACTIVITY_LOGS, JSON.stringify(logs));
+};
+
+export const logActivity = (action: string, details: string) => {
+  const currentUser = getCurrentUser();
+  const username = currentUser ? currentUser.username : 'System';
+  
+  const newLog: ActivityLog = {
+    id: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    username,
+    action,
+    details
+  };
+  
+  const logs = getActivityLogs();
+  // Keep last 1000 logs
+  if (logs.length > 1000) {
+      logs.pop();
+  }
+  logs.unshift(newLog);
+  saveActivityLogs(logs);
+};
+
 export const clearAllData = () => {
   localStorage.removeItem(KEYS.EQUIPMENT);
   localStorage.removeItem(KEYS.QUOTES);
   localStorage.removeItem(KEYS.SUPPLY_REQUEST_ITEMS);
   localStorage.removeItem(KEYS.SUPPLY_REQUEST_META);
+  localStorage.removeItem(KEYS.ACTIVITY_LOGS);
   // Do not clear users or session
 };
