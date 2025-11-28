@@ -6,12 +6,13 @@ import AnalysisPage from './pages/AnalysisPage';
 import SupplyRequestPage from './pages/SupplyRequestPage';
 import LoginPage from './pages/LoginPage';
 import UserManagementPage from './pages/UserManagementPage';
+import HelpPage from './pages/HelpPage';
 import { getCurrentUser, logout } from './services/storage';
 import { User } from './types';
 
 function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<'equipment' | 'quotes' | 'analysis' | 'supply-request' | 'users'>('equipment');
+  const [activeTab, setActiveTab] = useState<'equipment' | 'quotes' | 'analysis' | 'supply-request' | 'users' | 'help'>('equipment');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -42,6 +43,8 @@ function App() {
         return <SupplyRequestPage />;
       case 'users':
         return currentUser?.role === 'admin' ? <UserManagementPage /> : <div className="text-center text-red-500 mt-10">Bạn không có quyền truy cập trang này.</div>;
+      case 'help':
+        return <HelpPage />;
       default:
         return <EquipmentPage />;
     }

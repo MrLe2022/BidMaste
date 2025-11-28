@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Calculator, FileText, Menu, X, ClipboardList, Share2, Check, Cloud, UploadCloud, DownloadCloud, Save, LogOut, UserCog, User } from 'lucide-react';
+import { Package, Calculator, FileText, Menu, X, ClipboardList, Share2, Check, Cloud, UploadCloud, DownloadCloud, Save, LogOut, UserCog, User, HelpCircle } from 'lucide-react';
 import Modal from './Modal';
 import { syncToCloud, syncFromCloud } from '../services/cloud';
 import { User as UserType } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
-  activeTab: 'equipment' | 'quotes' | 'analysis' | 'supply-request' | 'users';
-  onTabChange: (tab: 'equipment' | 'quotes' | 'analysis' | 'supply-request' | 'users') => void;
+  activeTab: 'equipment' | 'quotes' | 'analysis' | 'supply-request' | 'users' | 'help';
+  onTabChange: (tab: 'equipment' | 'quotes' | 'analysis' | 'supply-request' | 'users' | 'help') => void;
   currentUser: UserType | null;
   onLogout: () => void;
 }
@@ -67,6 +67,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, curre
     { id: 'analysis', label: 'Phân tích & Xếp hạng', icon: Calculator, requiredRole: 'all' },
     { id: 'supply-request', label: 'Dự trù Vật tư', icon: ClipboardList, requiredRole: 'all' },
     { id: 'users', label: 'Quản lý Tài khoản', icon: UserCog, requiredRole: 'admin' },
+    { id: 'help', label: 'Hướng dẫn', icon: HelpCircle, requiredRole: 'all' },
   ] as const;
 
   // Filter items based on role
@@ -90,7 +91,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, curre
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="flex justify-between h-full">
             <div className="flex items-center">
-              <span className="text-2xl font-bold text-gray-900">ĐẤU THẦU VẬT TƯ</span>
+              <span className="text-3xl font-bold text-gray-900">ĐẤU THẦU VẬT TƯ</span>
             </div>
             
             <div className="flex items-center gap-4">
@@ -135,7 +136,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, curre
                     <div className="flex items-center gap-2 pl-2">
                         <div className="flex flex-col items-end">
                             <span className="text-sm font-bold text-gray-800">{currentUser?.fullName}</span>
-                            <span className="text-xs text-gray-500 capitalize">{currentUser?.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}</span>
+                            <span className="text-xs text-gray-500 capitalize">{currentUser?.role === 'admin' ? 'Quản trị viên' : 'Người sử dụng'}</span>
                         </div>
                         <button
                             onClick={onLogout}
