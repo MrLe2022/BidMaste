@@ -15,14 +15,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
   
   // Cloud Sync State
   const [isCloudModalOpen, setIsCloudModalOpen] = useState(false);
-  const [scriptUrl, setScriptUrl] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
-
-  useEffect(() => {
-    const savedUrl = localStorage.getItem('bidmaster_script_url');
-    if (savedUrl) setScriptUrl(savedUrl);
-  }, []);
 
   const handleShare = async () => {
     try {
@@ -34,45 +28,31 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
     }
   };
 
-  const handleSaveUrl = () => {
-      localStorage.setItem('bidmaster_script_url', scriptUrl);
-      setSyncMessage('Đã lưu URL cấu hình.');
-      setTimeout(() => setSyncMessage(''), 2000);
-  };
-
   const handleSyncToCloud = async () => {
-      if (!scriptUrl) {
-          setSyncMessage('Vui lòng nhập Google Web App URL.');
-          return;
-      }
       setIsSyncing(true);
       setSyncMessage('Đang kết nối...');
       try {
-          await syncToCloud(scriptUrl);
-          setSyncMessage('Thành công! Dữ liệu đã được gửi đến Google Sheet.');
+          await syncToCloud();
+          setSyncMessage('Thành công! Dữ liệu đã được lưu trữ an toàn.');
       } catch (e: any) {
           console.error(e);
-          setSyncMessage(`Lỗi: ${e.message || 'Không thể kết nối'}. Hãy kiểm tra F12 Console.`);
+          setSyncMessage(`Lỗi: ${e.message || 'Không thể kết nối'}. Vui lòng thử lại sau.`);
       } finally {
           setIsSyncing(false);
       }
   };
 
   const handleSyncFromCloud = async () => {
-      if (!scriptUrl) {
-          setSyncMessage('Vui lòng nhập Google Web App URL.');
-          return;
-      }
-      if (!confirm('Hành động này sẽ ghi đè dữ liệu hiện tại bằng dữ liệu từ Google Sheet. Bạn có chắc chắn không?')) return;
+      if (!confirm('Hành động này sẽ ghi đè dữ liệu hiện tại bằng dữ liệu từ Cloud. Bạn có chắc chắn không?')) return;
       
       setIsSyncing(true);
       setSyncMessage('Đang tải dữ liệu...');
       try {
-          await syncFromCloud(scriptUrl);
+          await syncFromCloud();
           setSyncMessage('Tải dữ liệu thành công! Vui lòng tải lại trang.');
           setTimeout(() => window.location.reload(), 1500);
       } catch (e) {
-          setSyncMessage('Lỗi: Không thể tải dữ liệu. Kiểm tra lại URL.');
+          setSyncMessage('Lỗi: Không thể tải dữ liệu.');
       } finally {
           setIsSyncing(false);
       }
@@ -99,14 +79,14 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm no-print">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-24">
+          <div className="flex justify-between h-32">
             <div className="flex items-center">
               <img 
                 src="https://lh3.googleusercontent.com/d/1X64s9zZ_Yq7PDBTox46r6h_z93M-F57Y" 
                 alt="Logo Minh Phát Khánh An" 
-                className="h-20 w-auto mr-4 object-contain"
+                className="h-28 w-auto mr-4 object-contain"
               />
-              <span className="text-2xl font-bold text-gray-900">ĐẤU THẦU VẬT TƯ - THIẾT BỊ</span>
+              <span className="text-3xl font-bold text-gray-900">ĐẤU THẦU VẬT TƯ - THIẾT BỊ</span>
             </div>
             
             <div className="flex items-center gap-4">
@@ -206,61 +186,38 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       </footer>
 
       {/* Cloud Sync Modal */}
-      <Modal isOpen={isCloudModalOpen} onClose={() => setIsCloudModalOpen(false)} title="Đồng bộ Google Sheets">
+      <Modal isOpen={isCloudModalOpen} onClose={() => setIsCloudModalOpen(false)} title="Đồng bộ Dữ liệu">
           <div className="space-y-6">
-              <div className="bg-blue-50 p-4 rounded text-sm text-blue-800 border border-blue-200">
-                  <p className="font-bold mb-1">Cách khắc phục lỗi "Sheet trống" hoặc "Lỗi kết nối":</p>
-                  <ul className="list-disc ml-5 space-y-1">
-                      <li>Đảm bảo bạn đã chọn <b>"Who has access: Anyone"</b> khi deploy.</li>
-                      {/* FIX: Replaced -> with &rarr; to avoid JSX parsing error */}
-                      <li className="font-bold text-red-600">QUAN TRỌNG: Nếu bạn sửa code Script, bạn PHẢI nhấn "Deploy" &rarr; "New Deployment" để tạo bản mới. URL cũ sẽ không chạy code mới.</li>
-                  </ul>
-              </div>
-              
-              <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Google Web App URL</label>
-                  <div className="flex gap-2">
-                      <input 
-                        type="text" 
-                        value={scriptUrl}
-                        onChange={(e) => setScriptUrl(e.target.value)}
-                        placeholder="https://script.google.com/macros/s/.../exec"
-                        className="flex-1 border border-gray-300 rounded-md p-2 text-sm"
-                      />
-                      <button 
-                        onClick={handleSaveUrl}
-                        className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-md transition"
-                        title="Lưu cấu hình"
-                      >
-                          <Save className="w-5 h-5" />
-                      </button>
-                  </div>
+              <div className="bg-blue-50 p-4 rounded text-sm text-blue-800 border border-blue-200 text-center">
+                  <p className="font-medium">
+                      Tính năng này giúp bạn lưu trữ dữ liệu lên hệ thống Cloud để chia sẻ với các thành viên khác hoặc sao lưu an toàn.
+                  </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                    <button 
                         onClick={handleSyncToCloud}
                         disabled={isSyncing}
-                        className="flex flex-col items-center justify-center p-4 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded-lg transition text-blue-800 disabled:opacity-50"
+                        className="flex flex-col items-center justify-center p-6 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded-xl transition text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed group shadow-sm hover:shadow-md"
                    >
-                       <UploadCloud className="w-8 h-8 mb-2" />
-                       <span className="font-bold">Lưu lên Cloud</span>
-                       <span className="text-xs text-blue-600 mt-1 text-center">Ghi đè dữ liệu trên Sheet bằng dữ liệu hiện tại</span>
+                       <UploadCloud className="w-10 h-10 mb-3 group-hover:scale-110 transition-transform" />
+                       <span className="font-bold text-lg">Lưu lên Cloud</span>
+                       <span className="text-xs text-blue-600 mt-2 text-center leading-tight">Ghi đè dữ liệu trên Cloud bằng dữ liệu máy này</span>
                    </button>
 
                    <button 
                         onClick={handleSyncFromCloud}
                         disabled={isSyncing}
-                        className="flex flex-col items-center justify-center p-4 border border-green-200 bg-green-50 hover:bg-green-100 rounded-lg transition text-green-800 disabled:opacity-50"
+                        className="flex flex-col items-center justify-center p-6 border border-green-200 bg-green-50 hover:bg-green-100 rounded-xl transition text-green-800 disabled:opacity-50 disabled:cursor-not-allowed group shadow-sm hover:shadow-md"
                    >
-                       <DownloadCloud className="w-8 h-8 mb-2" />
-                       <span className="font-bold">Tải từ Cloud</span>
-                       <span className="text-xs text-green-600 mt-1 text-center">Lấy dữ liệu từ Sheet về (Đè dữ liệu máy này)</span>
+                       <DownloadCloud className="w-10 h-10 mb-3 group-hover:scale-110 transition-transform" />
+                       <span className="font-bold text-lg">Tải từ Cloud</span>
+                       <span className="text-xs text-green-600 mt-2 text-center leading-tight">Lấy dữ liệu từ Cloud về (Ghi đè máy này)</span>
                    </button>
               </div>
               
               {syncMessage && (
-                  <div className={`p-3 rounded text-sm text-center ${syncMessage.includes('Lỗi') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                  <div className={`p-4 rounded-lg text-sm font-medium text-center animate-pulse ${syncMessage.includes('Lỗi') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
                       {syncMessage}
                   </div>
               )}

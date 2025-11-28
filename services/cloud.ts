@@ -1,12 +1,10 @@
 import { Equipment, Quotation, SupplyRequestItem, SupplyRequestMetadata } from '../types';
 import * as Storage from './storage';
 
-export const syncToCloud = async (scriptUrl: string) => {
-  const cleanUrl = scriptUrl.trim();
-  if (!cleanUrl.endsWith('exec')) {
-    throw new Error("URL không hợp lệ. URL phải kết thúc bằng '/exec'");
-  }
+// URL cố định theo yêu cầu
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxSXhqMEyLwmznMH88t7FeqCVjmf15s2DUCoHL4IonvQr0yfgqZ6DmHeKBbsE66a0AO/exec';
 
+export const syncToCloud = async () => {
   const payload = {
     equipment: Storage.getEquipment(),
     quotes: Storage.getQuotes(),
@@ -17,13 +15,10 @@ export const syncToCloud = async (scriptUrl: string) => {
   console.log("Starting sync to cloud...", payload);
 
   try {
-    // Chuyển sang mode 'cors' mặc định để nhận phản hồi lỗi nếu có.
-    // Google Apps Script Web App (với quyền Anyone) hỗ trợ CORS.
-    const response = await fetch(cleanUrl, {
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       body: JSON.stringify(payload),
       headers: {
-        // Sử dụng text/plain để tránh kích hoạt preflight OPTIONS request phức tạp
         'Content-Type': 'text/plain;charset=utf-8', 
       },
     });
@@ -42,10 +37,9 @@ export const syncToCloud = async (scriptUrl: string) => {
   }
 };
 
-export const syncFromCloud = async (scriptUrl: string) => {
-  const cleanUrl = scriptUrl.trim();
+export const syncFromCloud = async () => {
   try {
-    const response = await fetch(cleanUrl);
+    const response = await fetch(GOOGLE_SCRIPT_URL);
     
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
