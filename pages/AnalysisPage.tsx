@@ -365,7 +365,7 @@ const AnalysisPage: React.FC = () => {
   );
 
   return (
-    // THAY ĐỔI: print:block để reset layout
+    // THAY ĐỔI: print:block print:w-full để reset layout khi in
     <div className="space-y-6 pb-12 w-full print:block print:w-full">
       {/* Header & Controls */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 no-print">

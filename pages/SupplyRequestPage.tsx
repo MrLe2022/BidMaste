@@ -65,13 +65,6 @@ const SupplyRequestPage: React.FC = () => {
           const itemQuotes = quotes.filter(q => q.itemCode === item.itemCode && q.price > 0);
           if (itemQuotes.length === 0) return item;
 
-          // Simple ranking logic (Assuming same weighting as Analysis Page default: 70/30)
-          // For simplicity, we just pick lowest price here or you can replicate the full logic.
-          // Let's replicate a simplified scoring or just pick lowest price if you prefer.
-          // Better: Use pre-calculated rank if stored, but we only store raw quotes here.
-          // Let's use Lowest Price for now as a default "Winner" or the one with highest score if we recalculate.
-          
-          // RE-CALCULATE SCORE LOCALLY TO FIND WINNER
           const validPrices = itemQuotes.map(q => q.price);
           const lowestPrice = Math.min(...validPrices);
           
@@ -97,7 +90,7 @@ const SupplyRequestPage: React.FC = () => {
 
       setItems(updatedItems);
       Storage.saveSupplyRequestItems(updatedItems);
-      setViewMode('cost'); // Switch to cost view to see results
+      setViewMode('cost'); 
   };
 
   const handleSaveItem = () => {
@@ -121,7 +114,6 @@ const SupplyRequestPage: React.FC = () => {
         phase1Qty: p1,
         phase2Qty: p2,
         notes: newItem.notes || '',
-        // Preserve or Add Cost Data
         unitPrice: Number(newItem.unitPrice || 0),
         supplierName: newItem.supplierName || '',
         brand: newItem.brand || ''
@@ -130,7 +122,6 @@ const SupplyRequestPage: React.FC = () => {
     let updatedItems: SupplyRequestItem[];
     if (editingId) {
         updatedItems = items.map(item => item.id === editingId ? itemData : item);
-        alert('Đã cập nhật thiết bị thành công.');
     } else {
         updatedItems = [...items, itemData];
     }
@@ -211,7 +202,6 @@ const SupplyRequestPage: React.FC = () => {
         data.push(row);
     });
 
-    // Total Row for Cost
     if (viewMode === 'cost') {
         const totalP1 = items.reduce((sum, i) => sum + ((i.phase1Qty || 0) * (i.unitPrice || 0)), 0);
         const totalP2 = items.reduce((sum, i) => sum + ((i.phase2Qty || 0) * (i.unitPrice || 0)), 0);
@@ -238,13 +228,12 @@ const SupplyRequestPage: React.FC = () => {
   const totalQuantity = Number(newItem.quantity || 0);
   const isOverLimit = totalPhases > totalQuantity;
 
-  // Calculate Totals for Display
   const totalCostPhase1 = items.reduce((sum, item) => sum + ((item.phase1Qty || 0) * (item.unitPrice || 0)), 0);
   const totalCostPhase2 = items.reduce((sum, item) => sum + ((item.phase2Qty || 0) * (item.unitPrice || 0)), 0);
   const totalCostAll = items.reduce((sum, item) => sum + ((item.quantity || 0) * (item.unitPrice || 0)), 0);
 
   return (
-    // THAY ĐỔI: w-full print:w-full print:block để reset layout khi in
+    // THAY ĐỔI: print:block print:w-full để đảm bảo hiển thị khi in
     <div className="space-y-6 w-full print:w-full print:block">
       {/* Header (No Print) */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
@@ -423,7 +412,6 @@ const SupplyRequestPage: React.FC = () => {
                 </button>
             </div>
             
-             {/* Cost Fields (Always visible for editing to keep data consistent) */}
              <div className="md:col-span-4">
                  <label className="block text-xs font-medium text-gray-500 mb-1">Đơn giá dự toán (VND)</label>
                  <input 
@@ -449,7 +437,7 @@ const SupplyRequestPage: React.FC = () => {
                     className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
                     placeholder="Hãng sx hoặc ghi chú..."
                     value={newItem.brand || newItem.notes}
-                    onChange={(e) => setNewItem({...newItem, brand: e.target.value, notes: e.target.value})} // Keep simple mapping
+                    onChange={(e) => setNewItem({...newItem, brand: e.target.value, notes: e.target.value})} 
                  />
             </div>
 
@@ -473,7 +461,7 @@ const SupplyRequestPage: React.FC = () => {
       </div>
 
       {/* TABLE */}
-      {/* THAY ĐỔI: overflow-visible để in hết bảng */}
+      {/* THAY ĐỔI: print:overflow-visible để in hết bảng */}
       <div className="bg-white shadow rounded-lg overflow-hidden border border-gray-200 print:shadow-none print:border-none print:overflow-visible">
           <table className="min-w-full divide-y divide-gray-200 print:divide-gray-500 w-full">
               <thead className="bg-gray-50 print:bg-gray-200">

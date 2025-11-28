@@ -46,14 +46,13 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
           return;
       }
       setIsSyncing(true);
-      setSyncMessage('Đang tải dữ liệu lên Cloud...');
+      setSyncMessage('Đang kết nối...');
       try {
-          const cleanUrl = scriptUrl.trim();
-          await syncToCloud(cleanUrl);
-          setSyncMessage('Đồng bộ lên Cloud thành công! Dữ liệu đã được lưu vào Google Sheet.');
-      } catch (e) {
+          await syncToCloud(scriptUrl);
+          setSyncMessage('Thành công! Dữ liệu đã được gửi đến Google Sheet.');
+      } catch (e: any) {
           console.error(e);
-          setSyncMessage('Lỗi: Không thể kết nối đến Google Sheet. Vui lòng kiểm tra lại URL và chắc chắn bạn đã Deploy lại script.');
+          setSyncMessage(`Lỗi: ${e.message || 'Không thể kết nối'}. Hãy kiểm tra F12 Console.`);
       } finally {
           setIsSyncing(false);
       }
@@ -67,11 +66,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       if (!confirm('Hành động này sẽ ghi đè dữ liệu hiện tại bằng dữ liệu từ Google Sheet. Bạn có chắc chắn không?')) return;
       
       setIsSyncing(true);
-      setSyncMessage('Đang tải dữ liệu từ Cloud...');
+      setSyncMessage('Đang tải dữ liệu...');
       try {
-          const cleanUrl = scriptUrl.trim();
-          await syncFromCloud(cleanUrl);
-          setSyncMessage('Tải dữ liệu thành công! Vui lòng tải lại trang để cập nhật.');
+          await syncFromCloud(scriptUrl);
+          setSyncMessage('Tải dữ liệu thành công! Vui lòng tải lại trang.');
           setTimeout(() => window.location.reload(), 1500);
       } catch (e) {
           setSyncMessage('Lỗi: Không thể tải dữ liệu. Kiểm tra lại URL.');
@@ -190,7 +188,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 print:p-0 print:max-w-none">
+      {/* THAY ĐỔI: print:max-w-none print:p-0 để tràn trang */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 print:p-0 print:max-w-none print:w-full print:block">
         {children}
       </main>
 
@@ -209,9 +208,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       {/* Cloud Sync Modal */}
       <Modal isOpen={isCloudModalOpen} onClose={() => setIsCloudModalOpen(false)} title="Đồng bộ Google Sheets">
           <div className="space-y-6">
-              <div className="bg-blue-50 p-4 rounded text-sm text-blue-800">
-                  <p>Tính năng này giúp bạn lưu trữ dữ liệu lên Google Sheet để chia sẻ hoặc sao lưu.</p>
-                  <p className="mt-2 font-bold text-red-600">QUAN TRỌNG: Nếu bạn sửa code Google Script, bạn PHẢI nhấn "Deploy" -> "New Deployment" để lấy URL mới. URL cũ sẽ KHÔNG hoạt động.</p>
+              <div className="bg-blue-50 p-4 rounded text-sm text-blue-800 border border-blue-200">
+                  <p className="font-bold mb-1">Cách khắc phục lỗi "Sheet trống" hoặc "Lỗi kết nối":</p>
+                  <ul className="list-disc ml-5 space-y-1">
+                      <li>Đảm bảo bạn đã chọn <b>"Who has access: Anyone"</b> khi deploy.</li>
+                      <li className="font-bold text-red-600">QUAN TRỌNG: Nếu bạn sửa code Script, bạn PHẢI nhấn "Deploy" -> "New Deployment" để tạo bản mới. URL cũ sẽ không chạy code mới.</li>
+                  </ul>
               </div>
               
               <div>

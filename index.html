@@ -9,85 +9,68 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
       @media print {
-        /* 1. Thiết lập trang in */
         @page {
           margin: 10mm;
-          size: auto; /* Tự động khổ giấy */
+          size: auto;
         }
         
-        /* 2. Reset Layout toàn bộ ứng dụng để nội dung tràn ra nhiều trang */
-        body, html, #root {
+        /* RESET CỰC MẠNH: Phá vỡ mọi giới hạn scroll/height của Web App */
+        body, html, #root, main {
           height: auto !important;
           min-height: auto !important;
           overflow: visible !important;
           display: block !important;
+          width: 100% !important;
+          position: static !important;
         }
 
-        /* 3. Phá vỡ các vùng cuộn (scrollable areas) */
+        /* Ẩn thanh cuộn */
         .overflow-y-auto, .overflow-x-auto, .overflow-hidden {
           overflow: visible !important;
           height: auto !important;
           max-height: none !important;
         }
 
-        /* 4. Ẩn giao diện điều khiển */
-        header, nav, button, .no-print, .fixed, .sticky, footer.no-print {
+        /* Ẩn các thành phần không cần thiết */
+        header, nav, button, .no-print, .fixed, .sticky, .shadow-sm, .shadow-md, .border-b {
           display: none !important;
         }
 
-        /* 5. Mở rộng khung nội dung tối đa */
-        main, .max-w-7xl {
-          width: 100% !important;
-          max-width: 100% !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          position: static !important;
-          flex: none !important;
-          display: block !important;
-        }
-
-        /* 6. Đảm bảo màu nền và border in ra rõ nét */
+        /* Đảm bảo in màu nền */
         * {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }
 
-        /* 7. Xử lý ngắt trang */
-        .page-break {
-          page-break-before: always;
-        }
-        
+        /* Tránh ngắt trang giữa dòng */
         tr, td, th, .break-inside-avoid {
           page-break-inside: avoid !important;
         }
 
-        thead {
-          display: table-header-group; 
-        }
-
-        /* 8. Sửa lỗi biểu đồ Recharts */
+        /* Fix lỗi biểu đồ bị mất khi in */
         .recharts-responsive-container {
             width: 100% !important;
             height: 350px !important; 
             page-break-inside: avoid !important;
+            display: block !important;
         }
         
-        /* 9. Tinh chỉnh bảng dữ liệu */
+        /* Tinh chỉnh bảng */
         table {
             width: 100% !important;
             border-collapse: collapse !important;
         }
         th, td {
-            border: 1px solid #333 !important;
-            padding: 6px !important;
-            font-size: 11px !important; /* Chữ nhỏ lại một chút để vừa giấy A4 */
+            border: 1px solid #000 !important;
+            padding: 4px 8px !important;
+            font-size: 11px !important;
             color: #000 !important;
         }
         
-        /* Footer bản quyền khi in */
+        /* Footer bản quyền */
         footer {
             display: block !important;
-            position: relative !important; /* Không dùng fixed để tránh đè nội dung */
+            position: relative !important;
             margin-top: 20px;
             width: 100%;
             border: none !important;
@@ -97,23 +80,27 @@
         }
       }
     </style>
-<script type="importmap">
+  <script type="importmap">
 {
   "imports": {
-    "vite": "https://aistudiocdn.com/vite@^7.2.4",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "xlsx": "https://aistudiocdn.com/xlsx@^0.18.5",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.5.0"
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.0",
+    "xlsx": "https://aistudiocdn.com/xlsx@^0.18.5",
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1"
   }
 }
 </script>
 </head>
   <body class="bg-gray-50 text-gray-900 font-sans antialiased">
-    <div id="root"></div>
+    <div id="root">
+        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; color: #666;">
+            Loading Application...
+        </div>
+    </div>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>
