@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Equipment, SupplyRequestItem, SupplyRequestMetadata } from '../types';
 import * as Storage from '../services/storage';
-import { Plus, Trash2, Printer, Download, Save, FileText, Pencil, X, RotateCcw, Calculator, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Printer, Download, Save, FileText, Pencil, X, RotateCcw, Calculator, RefreshCw, Search, CheckSquare, Square } from 'lucide-react';
 import { exportToExcel } from '../utils/excelHelper';
 
 const SupplyRequestPage: React.FC = () => {
@@ -19,7 +19,10 @@ const SupplyRequestPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'quantity' | 'cost'>('quantity');
 
   // Form State for new/edit item
-  const [selectedEqCode, setSelectedEqCode] = useState('');
+  // CHANGE: selectedEqCodes is now an array for multi-select
+  const [selectedEqCodes, setSelectedEqCodes] = useState<string[]>([]);
+  const [equipmentSearch, setEquipmentSearch] = useState(''); // Search for the multi-select list
+
   const [newItem, setNewItem] = useState<Partial<SupplyRequestItem>>({
     quantity: 1,
     phase1Qty: 0,
@@ -38,23 +41,34 @@ const SupplyRequestPage: React.FC = () => {
     setQuotes(Storage.getQuotes());
   }, []);
 
+  // Filter equipment for the multi-select list
+  const filteredEquipment = useMemo(() => {
+      return equipment.filter(e => 
+        e.code.toLowerCase().includes(equipmentSearch.toLowerCase()) || 
+        e.name.toLowerCase().includes(equipmentSearch.toLowerCase())
+      );
+  }, [equipment, equipmentSearch]);
+
   const handleMetaChange = (field: keyof SupplyRequestMetadata, value: string) => {
     const newMeta = { ...meta, [field]: value };
     setMeta(newMeta);
     Storage.saveSupplyRequestMeta(newMeta);
   };
 
-  const handleEqSelect = (code: string) => {
-    setSelectedEqCode(code);
-    const eq = equipment.find(e => e.code === code);
-    if (eq) {
-      setNewItem(prev => ({
-        ...prev,
-        itemCode: eq.code,
-        itemName: eq.name,
-        itemSpecs: eq.specs,
-      }));
-    }
+  // Toggle selection logic
+  const toggleSelectEquipment = (code: string) => {
+      setSelectedEqCodes(prev => {
+          if (prev.includes(code)) return prev.filter(c => c !== code);
+          return [...prev, code];
+      });
+  };
+
+  const toggleSelectAll = () => {
+      if (selectedEqCodes.length === filteredEquipment.length && filteredEquipment.length > 0) {
+          setSelectedEqCodes([]); // Deselect all
+      } else {
+          setSelectedEqCodes(filteredEquipment.map(e => e.code)); // Select all currently filtered
+      }
   };
 
   const handleAutoFillPrices = () => {
@@ -94,8 +108,7 @@ const SupplyRequestPage: React.FC = () => {
   };
 
   const handleSaveItem = () => {
-    if (!selectedEqCode || !newItem.quantity) return;
-
+    // Validation
     const total = Number(newItem.quantity);
     const p1 = Number(newItem.phase1Qty || 0);
     const p2 = Number(newItem.phase2Qty || 0);
@@ -105,25 +118,59 @@ const SupplyRequestPage: React.FC = () => {
         return;
     }
 
-    const itemData: SupplyRequestItem = {
-        id: editingId || crypto.randomUUID(),
-        itemCode: newItem.itemCode!,
-        itemName: newItem.itemName!,
-        itemSpecs: newItem.itemSpecs!,
-        quantity: total,
-        phase1Qty: p1,
-        phase2Qty: p2,
-        notes: newItem.notes || '',
-        unitPrice: Number(newItem.unitPrice || 0),
-        supplierName: newItem.supplierName || '',
-        brand: newItem.brand || ''
-    };
+    let updatedItems: SupplyRequestItem[] = [...items];
 
-    let updatedItems: SupplyRequestItem[];
     if (editingId) {
+        // --- EDIT MODE (Single Item) ---
+        // In edit mode, selectedEqCodes should have exactly 1 item (set by handleEdit)
+        const code = selectedEqCodes[0]; 
+        const eq = equipment.find(e => e.code === code);
+        if (!eq) return;
+
+        const itemData: SupplyRequestItem = {
+            id: editingId,
+            itemCode: eq.code,
+            itemName: eq.name,
+            itemSpecs: eq.specs,
+            quantity: total,
+            phase1Qty: p1,
+            phase2Qty: p2,
+            notes: newItem.notes || '',
+            unitPrice: Number(newItem.unitPrice || 0),
+            supplierName: newItem.supplierName || '',
+            brand: newItem.brand || ''
+        };
         updatedItems = items.map(item => item.id === editingId ? itemData : item);
+
     } else {
-        updatedItems = [...items, itemData];
+        // --- ADD MODE (Bulk Add) ---
+        if (selectedEqCodes.length === 0) {
+            alert("Vui lòng chọn ít nhất một thiết bị.");
+            return;
+        }
+
+        const newItemsToAdd: SupplyRequestItem[] = [];
+        
+        selectedEqCodes.forEach(code => {
+            const eq = equipment.find(e => e.code === code);
+            if (eq) {
+                newItemsToAdd.push({
+                    id: crypto.randomUUID(),
+                    itemCode: eq.code,
+                    itemName: eq.name,
+                    itemSpecs: eq.specs,
+                    quantity: total, // Apply same quantity to all
+                    phase1Qty: p1,
+                    phase2Qty: p2,
+                    notes: newItem.notes || '',
+                    unitPrice: Number(newItem.unitPrice || 0),
+                    supplierName: newItem.supplierName || '',
+                    brand: newItem.brand || ''
+                });
+            }
+        });
+        
+        updatedItems = [...items, ...newItemsToAdd];
     }
     
     setItems(updatedItems);
@@ -133,11 +180,8 @@ const SupplyRequestPage: React.FC = () => {
 
   const handleEdit = (item: SupplyRequestItem) => {
       setEditingId(item.id);
-      setSelectedEqCode(item.itemCode);
+      setSelectedEqCodes([item.itemCode]); // Set single selection for edit
       setNewItem({
-          itemCode: item.itemCode,
-          itemName: item.itemName,
-          itemSpecs: item.itemSpecs,
           quantity: item.quantity,
           phase1Qty: item.phase1Qty,
           phase2Qty: item.phase2Qty,
@@ -146,12 +190,14 @@ const SupplyRequestPage: React.FC = () => {
           supplierName: item.supplierName,
           brand: item.brand
       });
+      // Clear search so the selected item is likely visible if we were to show the list (though we hide list in edit)
+      setEquipmentSearch(''); 
       window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const resetForm = () => {
       setEditingId(null);
-      setSelectedEqCode('');
+      setSelectedEqCodes([]);
       setNewItem({ quantity: 1, phase1Qty: 0, phase2Qty: 0, notes: '', unitPrice: 0, supplierName: '', brand: '' });
   };
 
@@ -189,12 +235,12 @@ const SupplyRequestPage: React.FC = () => {
         };
 
         if (viewMode === 'cost') {
-            row['Đơn giá (VNĐ)'] = item.unitPrice;
+            row['Đơn giá (x1000)'] = (item.unitPrice || 0) / 1000;
             row['Nhà cung cấp'] = item.supplierName;
             row['Hãng'] = item.brand;
-            row['Thành tiền GĐ1'] = (item.phase1Qty || 0) * (item.unitPrice || 0);
-            row['Thành tiền GĐ2'] = (item.phase2Qty || 0) * (item.unitPrice || 0);
-            row['Tổng Thành tiền'] = (item.quantity || 0) * (item.unitPrice || 0);
+            row['Thành tiền GĐ1 (x1000)'] = ((item.phase1Qty || 0) * (item.unitPrice || 0)) / 1000;
+            row['Thành tiền GĐ2 (x1000)'] = ((item.phase2Qty || 0) * (item.unitPrice || 0)) / 1000;
+            row['Tổng Thành tiền (x1000)'] = ((item.quantity || 0) * (item.unitPrice || 0)) / 1000;
         } else {
              row['Ghi chú'] = item.notes;
         }
@@ -210,9 +256,9 @@ const SupplyRequestPage: React.FC = () => {
         data.push({});
         data.push({
             'Thông số kỹ thuật': 'TỔNG CỘNG',
-            'Thành tiền GĐ1': totalP1,
-            'Thành tiền GĐ2': totalP2,
-            'Tổng Thành tiền': totalAll
+            'Thành tiền GĐ1 (x1000)': totalP1 / 1000,
+            'Thành tiền GĐ2 (x1000)': totalP2 / 1000,
+            'Tổng Thành tiền (x1000)': totalAll / 1000
         });
     }
 
@@ -350,7 +396,7 @@ const SupplyRequestPage: React.FC = () => {
         <h3 className={`text-sm font-bold mb-3 flex items-center justify-between ${editingId ? 'text-yellow-800' : 'text-gray-700'}`}>
              <span className="flex items-center">
                 {editingId ? <Pencil className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                {editingId ? "Cập nhật thông tin" : "Thêm Thiết bị"}
+                {editingId ? "Cập nhật thông tin" : "Thêm Thiết bị (Chọn nhiều)"}
              </span>
              {editingId && (
                  <button onClick={resetForm} className="text-xs bg-white border border-yellow-300 px-2 py-1 rounded hover:bg-yellow-100 flex items-center">
@@ -358,96 +404,159 @@ const SupplyRequestPage: React.FC = () => {
                  </button>
              )}
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-            <div className="md:col-span-4">
-                <label className="block text-xs font-medium text-gray-500 mb-1">Chọn Thiết bị *</label>
-                <select 
-                    className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm bg-white"
-                    value={selectedEqCode}
-                    onChange={(e) => handleEqSelect(e.target.value)}
-                >
-                    <option value="">-- Chọn từ danh mục --</option>
-                    {equipment.map(e => (
-                        <option key={e.id} value={e.code}>{e.code} - {e.name}</option>
-                    ))}
-                </select>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+            
+            {/* --- MULTI-SELECT EQUIPMENT AREA --- */}
+            <div className="md:col-span-4 flex flex-col h-full">
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                    {editingId ? 'Thiết bị đang sửa *' : 'Chọn Thiết bị (Có thể chọn nhiều) *'}
+                </label>
+                
+                {editingId ? (
+                    // Edit Mode: Read-only input
+                    <input 
+                        type="text" 
+                        disabled 
+                        value={items.find(i => i.id === editingId)?.itemName || selectedEqCodes[0]}
+                        className="block w-full border border-yellow-300 bg-yellow-50 rounded-md shadow-sm p-2 text-sm font-bold text-yellow-800"
+                    />
+                ) : (
+                    // Add Mode: Multi-select Box
+                    <div className="border border-gray-300 rounded-md overflow-hidden flex flex-col bg-white h-64 shadow-sm">
+                        {/* Search & Select All Header */}
+                        <div className="p-2 border-b border-gray-200 bg-gray-50 space-y-2">
+                            <div className="relative">
+                                <Search className="absolute left-2 top-2 w-4 h-4 text-gray-400" />
+                                <input 
+                                    type="text" 
+                                    placeholder="Tìm tên hoặc mã..." 
+                                    className="w-full pl-8 pr-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 outline-none"
+                                    value={equipmentSearch}
+                                    onChange={(e) => setEquipmentSearch(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between px-1">
+                                <button 
+                                    onClick={toggleSelectAll}
+                                    className="flex items-center text-xs font-bold text-blue-600 hover:text-blue-800"
+                                >
+                                    {selectedEqCodes.length > 0 && selectedEqCodes.length === filteredEquipment.length ? (
+                                        <CheckSquare className="w-4 h-4 mr-1" /> 
+                                    ) : (
+                                        <Square className="w-4 h-4 mr-1" />
+                                    )}
+                                    Chọn tất cả ({filteredEquipment.length})
+                                </button>
+                                <span className="text-xs text-gray-500">Đã chọn: <b className="text-blue-600">{selectedEqCodes.length}</b></span>
+                            </div>
+                        </div>
+                        
+                        {/* List */}
+                        <div className="flex-1 overflow-y-auto p-1 space-y-1">
+                            {filteredEquipment.length === 0 ? (
+                                <p className="text-center text-xs text-gray-400 py-4">Không tìm thấy thiết bị</p>
+                            ) : (
+                                filteredEquipment.map(eq => {
+                                    const isSelected = selectedEqCodes.includes(eq.code);
+                                    return (
+                                        <div 
+                                            key={eq.id}
+                                            onClick={() => toggleSelectEquipment(eq.code)}
+                                            className={`flex items-start p-2 rounded cursor-pointer transition-colors text-sm ${isSelected ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-100 border border-transparent'}`}
+                                        >
+                                            <div className={`mt-0.5 mr-2 flex-shrink-0 ${isSelected ? 'text-blue-600' : 'text-gray-300'}`}>
+                                                {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+                                            </div>
+                                            <div>
+                                                <div className={`font-medium ${isSelected ? 'text-blue-800' : 'text-gray-700'}`}>{eq.name}</div>
+                                                <div className="text-xs text-gray-500 font-mono">{eq.code}</div>
+                                            </div>
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
             
-            <div className="md:col-span-2">
-                 <label className="block text-xs font-medium text-gray-500 mb-1">Tổng SL *</label>
-                 <input 
-                    type="number" min="1"
-                    className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm font-bold"
-                    value={newItem.quantity}
-                    onChange={(e) => setNewItem({...newItem, quantity: Number(e.target.value)})}
-                 />
-            </div>
-            <div className="md:col-span-2">
-                 <label className="block text-xs font-medium text-gray-500 mb-1">SL GĐ1</label>
-                 <input 
-                    type="number" min="0"
-                    className={`block w-full border rounded-md shadow-sm p-2 text-sm ${isOverLimit ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                    value={newItem.phase1Qty}
-                    onChange={(e) => setNewItem({...newItem, phase1Qty: Number(e.target.value)})}
-                 />
-            </div>
-            <div className="md:col-span-2">
-                 <label className="block text-xs font-medium text-gray-500 mb-1">SL GĐ2</label>
-                 <input 
-                    type="number" min="0"
-                    className={`block w-full border rounded-md shadow-sm p-2 text-sm ${isOverLimit ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                    value={newItem.phase2Qty}
-                    onChange={(e) => setNewItem({...newItem, phase2Qty: Number(e.target.value)})}
-                 />
-            </div>
+            {/* --- RIGHT COLUMN: INPUTS --- */}
+            <div className="md:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2 grid grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Tổng SL *</label>
+                        <input 
+                            type="number" min="1"
+                            className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm font-bold"
+                            value={newItem.quantity}
+                            onChange={(e) => setNewItem({...newItem, quantity: Number(e.target.value)})}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">SL GĐ1</label>
+                        <input 
+                            type="number" min="0"
+                            className={`block w-full border rounded-md shadow-sm p-2 text-sm ${isOverLimit ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                            value={newItem.phase1Qty}
+                            onChange={(e) => setNewItem({...newItem, phase1Qty: Number(e.target.value)})}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">SL GĐ2</label>
+                        <input 
+                            type="number" min="0"
+                            className={`block w-full border rounded-md shadow-sm p-2 text-sm ${isOverLimit ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                            value={newItem.phase2Qty}
+                            onChange={(e) => setNewItem({...newItem, phase2Qty: Number(e.target.value)})}
+                        />
+                    </div>
+                </div>
 
-             <div className="md:col-span-2">
-                <button 
-                    onClick={handleSaveItem}
-                    disabled={!selectedEqCode || isOverLimit}
-                    className={`w-full flex justify-center items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white disabled:bg-gray-400 disabled:cursor-not-allowed ${editingId ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'}`}
-                >
-                    {editingId ? <Save className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                    {editingId ? "Cập nhật" : "Thêm"}
-                </button>
-            </div>
-            
-             <div className="md:col-span-4">
-                 <label className="block text-xs font-medium text-gray-500 mb-1">Đơn giá dự toán (VND)</label>
-                 <input 
-                    type="number" min="0"
-                    className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                    value={newItem.unitPrice}
-                    onChange={(e) => setNewItem({...newItem, unitPrice: Number(e.target.value)})}
-                 />
-            </div>
-             <div className="md:col-span-4">
-                 <label className="block text-xs font-medium text-gray-500 mb-1">Nhà cung cấp</label>
-                 <input 
-                    type="text"
-                    className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                    value={newItem.supplierName}
-                    onChange={(e) => setNewItem({...newItem, supplierName: e.target.value})}
-                 />
-            </div>
-             <div className="md:col-span-4">
-                 <label className="block text-xs font-medium text-gray-500 mb-1">Hãng / Ghi chú</label>
-                 <input 
-                    type="text"
-                    className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
-                    placeholder="Hãng sx hoặc ghi chú..."
-                    value={newItem.brand || newItem.notes}
-                    onChange={(e) => setNewItem({...newItem, brand: e.target.value, notes: e.target.value})} 
-                 />
-            </div>
+                <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Đơn giá dự toán (VND)</label>
+                    <input 
+                        type="number" min="0"
+                        className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
+                        value={newItem.unitPrice}
+                        onChange={(e) => setNewItem({...newItem, unitPrice: Number(e.target.value)})}
+                    />
+                </div>
+                <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Nhà cung cấp</label>
+                    <input 
+                        type="text"
+                        className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
+                        value={newItem.supplierName}
+                        onChange={(e) => setNewItem({...newItem, supplierName: e.target.value})}
+                    />
+                </div>
+                <div className="md:col-span-2">
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Hãng / Ghi chú</label>
+                    <input 
+                        type="text"
+                        className="block w-full border border-gray-300 rounded-md shadow-sm p-2 text-sm"
+                        placeholder="Hãng sx hoặc ghi chú..."
+                        value={newItem.brand || newItem.notes}
+                        onChange={(e) => setNewItem({...newItem, brand: e.target.value, notes: e.target.value})} 
+                    />
+                </div>
 
-             <div className="md:col-span-12">
-                 {isOverLimit && (
-                     <div className="text-red-600 text-xs font-bold mb-2 flex items-center">
-                        <X className="w-3 h-3 mr-1" />
-                        Lỗi: Tổng số lượng Giai đoạn ({totalPhases}) đang vượt quá Tổng số lượng dự trù ({totalQuantity}).
-                     </div>
-                 )}
+                <div className="md:col-span-2">
+                    {isOverLimit && (
+                        <div className="text-red-600 text-xs font-bold mb-2 flex items-center">
+                            <X className="w-3 h-3 mr-1" />
+                            Lỗi: Tổng số lượng Giai đoạn ({totalPhases}) đang vượt quá Tổng số lượng dự trù ({totalQuantity}).
+                        </div>
+                    )}
+                    <button 
+                        onClick={handleSaveItem}
+                        disabled={selectedEqCodes.length === 0 || isOverLimit}
+                        className={`w-full flex justify-center items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white disabled:bg-gray-400 disabled:cursor-not-allowed ${editingId ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                    >
+                        {editingId ? <Save className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                        {editingId ? "Cập nhật" : `Thêm ${selectedEqCodes.length} Thiết bị đã chọn`}
+                    </button>
+                </div>
             </div>
         </div>
       </div>
@@ -474,7 +583,7 @@ const SupplyRequestPage: React.FC = () => {
                       {viewMode === 'cost' && (
                            <>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">NCC / Hãng</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Đơn giá</th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Đơn giá (x1000)</th>
                            </>
                       )}
                       <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase bg-blue-50 border print:border-black print:bg-transparent print:text-black">Tổng SL</th>
@@ -525,7 +634,7 @@ const SupplyRequestPage: React.FC = () => {
                                         <div className="text-xs text-gray-500">{item.brand}</div>
                                     </td>
                                     <td className="px-4 py-3 text-right text-sm text-gray-700 border print:border-black print:text-black">
-                                        {new Intl.NumberFormat('vi-VN').format(item.unitPrice || 0)}
+                                        {new Intl.NumberFormat('vi-VN').format((item.unitPrice || 0) / 1000)}
                                     </td>
                                   </>
                               )}
@@ -543,13 +652,13 @@ const SupplyRequestPage: React.FC = () => {
                               {viewMode === 'cost' && (
                                   <>
                                     <td className="px-4 py-3 text-right text-sm text-gray-700 border print:border-black print:text-black">
-                                        {new Intl.NumberFormat('vi-VN').format((item.phase1Qty || 0) * (item.unitPrice || 0))}
+                                        {new Intl.NumberFormat('vi-VN').format(((item.phase1Qty || 0) * (item.unitPrice || 0)) / 1000)}
                                     </td>
                                     <td className="px-4 py-3 text-right text-sm text-gray-700 border print:border-black print:text-black">
-                                        {new Intl.NumberFormat('vi-VN').format((item.phase2Qty || 0) * (item.unitPrice || 0))}
+                                        {new Intl.NumberFormat('vi-VN').format(((item.phase2Qty || 0) * (item.unitPrice || 0)) / 1000)}
                                     </td>
                                     <td className="px-4 py-3 text-right text-sm font-bold bg-green-50 text-green-700 border print:bg-transparent print:border-black print:text-black">
-                                        {new Intl.NumberFormat('vi-VN').format((item.quantity || 0) * (item.unitPrice || 0))}
+                                        {new Intl.NumberFormat('vi-VN').format(((item.quantity || 0) * (item.unitPrice || 0)) / 1000)}
                                     </td>
                                   </>
                               )}
@@ -576,15 +685,15 @@ const SupplyRequestPage: React.FC = () => {
                   {/* Totals Row for Cost View */}
                   {viewMode === 'cost' && items.length > 0 && (
                       <tr className="bg-gray-100 font-bold print:bg-transparent print:font-bold">
-                          <td colSpan={5} className="px-4 py-3 text-right text-sm text-gray-900 border print:border-black uppercase">Tổng cộng</td>
+                          <td colSpan={5} className="px-4 py-3 text-right text-sm text-gray-900 border print:border-black uppercase">Tổng cộng (x1000)</td>
                           <td className="px-4 py-3 text-right text-sm text-gray-900 border print:border-black">
-                              {new Intl.NumberFormat('vi-VN').format(totalCostPhase1)}
+                              {new Intl.NumberFormat('vi-VN').format(totalCostPhase1 / 1000)}
                           </td>
                           <td className="px-4 py-3 text-right text-sm text-gray-900 border print:border-black">
-                              {new Intl.NumberFormat('vi-VN').format(totalCostPhase2)}
+                              {new Intl.NumberFormat('vi-VN').format(totalCostPhase2 / 1000)}
                           </td>
                           <td className="px-4 py-3 text-right text-sm text-gray-900 border print:border-black">
-                              {new Intl.NumberFormat('vi-VN').format(totalCostAll)}
+                              {new Intl.NumberFormat('vi-VN').format(totalCostAll / 1000)}
                           </td>
                           <td className="no-print border"></td>
                       </tr>
