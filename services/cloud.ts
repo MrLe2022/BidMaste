@@ -21,6 +21,7 @@ export const syncToCloud = async () => {
       headers: {
         'Content-Type': 'text/plain;charset=utf-8', 
       },
+      redirect: 'follow', // Follow GAS redirects
     });
 
     if (!response.ok) {
@@ -39,7 +40,8 @@ export const syncToCloud = async () => {
 
 export const syncFromCloud = async () => {
   try {
-    const response = await fetch(GOOGLE_SCRIPT_URL);
+    // Add timestamp to prevent caching
+    const response = await fetch(`${GOOGLE_SCRIPT_URL}?t=${new Date().getTime()}`);
     
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -48,10 +50,18 @@ export const syncFromCloud = async () => {
     const data = await response.json();
     console.log("Received data from cloud:", data);
 
-    if (data.Equipment) Storage.saveEquipment(data.Equipment);
-    if (data.Quotes) Storage.saveQuotes(data.Quotes);
-    if (data.SupplyItems) Storage.saveSupplyRequestItems(data.SupplyItems);
-    if (data.Meta && data.Meta.length > 0) Storage.saveSupplyRequestMeta(data.Meta[0]);
+    // Flexible key checking (case insensitive)
+    const getKey = (obj: any, key: string) => obj[key] || obj[key.toLowerCase()];
+
+    const equipment = getKey(data, 'Equipment');
+    const quotes = getKey(data, 'Quotes');
+    const supplyItems = getKey(data, 'SupplyItems');
+    const meta = getKey(data, 'Meta');
+
+    if (equipment) Storage.saveEquipment(equipment);
+    if (quotes) Storage.saveQuotes(quotes);
+    if (supplyItems) Storage.saveSupplyRequestItems(supplyItems);
+    if (meta && meta.length > 0) Storage.saveSupplyRequestMeta(meta[0]);
 
     return true;
   } catch (error) {

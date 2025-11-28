@@ -79,14 +79,9 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm no-print">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-32">
+          <div className="flex justify-between h-20">
             <div className="flex items-center">
-              <img 
-                src="https://lh3.googleusercontent.com/d/1X64s9zZ_Yq7PDBTox46r6h_z93M-F57Y" 
-                alt="Logo Minh Phát Khánh An" 
-                className="h-28 w-auto mr-4 object-contain"
-              />
-              <span className="text-3xl font-bold text-gray-900">ĐẤU THẦU VẬT TƯ - THIẾT BỊ</span>
+              <span className="text-2xl font-bold text-gray-900">ĐẤU THẦU VẬT TƯ - THIẾT BỊ</span>
             </div>
             
             <div className="flex items-center gap-4">

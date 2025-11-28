@@ -447,11 +447,16 @@ const QuotationsPage: React.FC = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex gap-4">
-                        <SortableHeader label="VT/TB" sortKeyVal="itemCode" />
-                        <span className="text-gray-300">|</span>
-                        <SortableHeader label="Nhà Cung Cấp" sortKeyVal="supplierName" />
-                    </div>
+                     <SortableHeader label="Mã VT/TB" sortKeyVal="itemCode" />
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                     Tên VT/TB
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                     Thông số KT
+                </th>
+                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                     <SortableHeader label="Nhà Cung Cấp" sortKeyVal="supplierName" />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <div className="flex gap-4">
@@ -460,88 +465,101 @@ const QuotationsPage: React.FC = () => {
                         <SortableHeader label="Giá" sortKeyVal="price" />
                     </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Ghi chú</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Ghi chú</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
                      <div className="flex justify-center">
                         <SortableHeader label="Điểm KT" sortKeyVal="technicalScore" />
                      </div>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-64">Lý do điều chỉnh</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Lý do điều chỉnh</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {processedQuotes.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
                     Chưa có báo giá nào phù hợp với bộ lọc.
                   </td>
                 </tr>
               ) : (
-                processedQuotes.map((quote) => (
-                  <tr key={quote.id} className="hover:bg-gray-50">
-                     <td className="px-6 py-4 text-sm">
-                        <div className="font-medium text-blue-600 flex items-center">
-                            {quote.itemCode}
-                            {!equipment.find(e => e.code === quote.itemCode) && (
-                                <AlertCircle className="w-3 h-3 ml-1 text-red-500" title="Mã VT/TB không tồn tại"/>
-                            )}
+                processedQuotes.map((quote) => {
+                  const linkedItem = equipment.find(e => e.code === quote.itemCode);
+                  return (
+                    <tr key={quote.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm">
+                            <div className="font-medium text-blue-600 flex items-center">
+                                {quote.itemCode}
+                                {!linkedItem && (
+                                    <AlertCircle className="w-3 h-3 ml-1 text-red-500" title="Mã VT/TB không tồn tại"/>
+                                )}
+                            </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                             {linkedItem ? linkedItem.name : <span className="text-gray-400 italic">Không tìm thấy</span>}
+                        </td>
+                         <td className="px-6 py-4 text-sm text-gray-500">
+                             <div className="max-w-xs truncate" title={linkedItem?.specs}>
+                                 {linkedItem?.specs || '-'}
+                             </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900 font-medium">
+                            {quote.supplierName}
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                            <div className="text-gray-500">{quote.brand}</div>
+                            <div className="font-mono font-medium text-gray-900 mt-1">
+                                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(quote.price)}
+                                {quote.vatIncluded ? <span className="text-xs text-blue-600 ml-1 font-sans">(VAT)</span> : <span className="text-xs text-gray-400 ml-1 font-sans">(Chưa VAT)</span>}
+                            </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                            <div className="line-clamp-2 max-w-xs" title={quote.notes}>
+                                {quote.notes || '-'}
+                            </div>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                            <input 
+                                type="number"
+                                min="1"
+                                max="10"
+                                step="0.5"
+                                className={`w-16 text-center border rounded py-1 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none ${
+                                    quote.technicalScore >= 8 ? 'bg-green-50 border-green-200 text-green-800' :
+                                    quote.technicalScore >= 5 ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
+                                    'bg-red-50 border-red-200 text-red-800'
+                                }`}
+                                value={quote.technicalScore}
+                                onChange={(e) => {
+                                    let val = parseFloat(e.target.value);
+                                    if (val > 10) val = 10;
+                                    if (val < 0) val = 0;
+                                    handleQuickUpdate(quote.id, 'technicalScore', val);
+                                }}
+                            />
+                        </td>
+                        <td className="px-6 py-4">
+                            <input 
+                                type="text"
+                                placeholder="Giải trình..."
+                                className="w-full border-b border-transparent bg-transparent focus:border-blue-500 focus:bg-white text-sm text-gray-600 outline-none transition-colors px-1 py-1 placeholder-gray-300"
+                                value={quote.techScoreReason || ''}
+                                onChange={(e) => handleQuickUpdate(quote.id, 'techScoreReason', e.target.value)}
+                            />
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex justify-end gap-2">
+                            <button onClick={() => handleEdit(quote)} className="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded-full hover:bg-blue-100 transition">
+                                <Pencil className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDelete(quote.id)} className="text-red-600 hover:text-red-900 bg-red-50 p-2 rounded-full hover:bg-red-100 transition">
+                                <Trash2 className="w-4 h-4" />
+                            </button>
                         </div>
-                        <div className="text-gray-900">{quote.supplierName}</div>
-                     </td>
-                    <td className="px-6 py-4 text-sm">
-                        <div className="text-gray-500">{quote.brand}</div>
-                        <div className="font-mono font-medium text-gray-900 mt-1">
-                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(quote.price)}
-                            {quote.vatIncluded ? <span className="text-xs text-blue-600 ml-1 font-sans">(VAT)</span> : <span className="text-xs text-gray-400 ml-1 font-sans">(Chưa VAT)</span>}
-                        </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                        <div className="line-clamp-2 max-w-xs" title={quote.notes}>
-                            {quote.notes || '-'}
-                        </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                        <input 
-                            type="number"
-                            min="1"
-                            max="10"
-                            step="0.5"
-                            className={`w-16 text-center border rounded py-1 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none ${
-                                quote.technicalScore >= 8 ? 'bg-green-50 border-green-200 text-green-800' :
-                                quote.technicalScore >= 5 ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-                                'bg-red-50 border-red-200 text-red-800'
-                            }`}
-                            value={quote.technicalScore}
-                            onChange={(e) => {
-                                let val = parseFloat(e.target.value);
-                                if (val > 10) val = 10;
-                                if (val < 0) val = 0;
-                                handleQuickUpdate(quote.id, 'technicalScore', val);
-                            }}
-                        />
-                    </td>
-                    <td className="px-6 py-4">
-                        <input 
-                            type="text"
-                            placeholder="Giải trình..."
-                            className="w-full border-b border-transparent bg-transparent focus:border-blue-500 focus:bg-white text-sm text-gray-600 outline-none transition-colors px-1 py-1 placeholder-gray-300"
-                            value={quote.techScoreReason || ''}
-                            onChange={(e) => handleQuickUpdate(quote.id, 'techScoreReason', e.target.value)}
-                        />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => handleEdit(quote)} className="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded-full hover:bg-blue-100 transition">
-                            <Pencil className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDelete(quote.id)} className="text-red-600 hover:text-red-900 bg-red-50 p-2 rounded-full hover:bg-red-100 transition">
-                            <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                        </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
