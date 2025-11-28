@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Package, Calculator, FileText, Menu, X, ClipboardList, Share2, Check, Cloud, UploadCloud, DownloadCloud, Save } from 'lucide-react';
+import { Package, Calculator, FileText, Menu, X, ClipboardList, Share2, Check, Cloud, UploadCloud, DownloadCloud, Save, LogOut, UserCog, User } from 'lucide-react';
 import Modal from './Modal';
 import { syncToCloud, syncFromCloud } from '../services/cloud';
+import { User as UserType } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
-  activeTab: 'equipment' | 'quotes' | 'analysis' | 'supply-request';
-  onTabChange: (tab: 'equipment' | 'quotes' | 'analysis' | 'supply-request') => void;
+  activeTab: 'equipment' | 'quotes' | 'analysis' | 'supply-request' | 'users';
+  onTabChange: (tab: 'equipment' | 'quotes' | 'analysis' | 'supply-request' | 'users') => void;
+  currentUser: UserType | null;
+  onLogout: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, currentUser, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
   
@@ -59,11 +62,17 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
   };
 
   const navItems = [
-    { id: 'equipment', label: 'Danh mục Thiết bị', icon: Package },
-    { id: 'quotes', label: 'Quản lý Báo giá', icon: FileText },
-    { id: 'analysis', label: 'Phân tích & Xếp hạng', icon: Calculator },
-    { id: 'supply-request', label: 'Dự trù Vật tư', icon: ClipboardList },
+    { id: 'equipment', label: 'Danh mục Thiết bị', icon: Package, requiredRole: 'all' },
+    { id: 'quotes', label: 'Quản lý Báo giá', icon: FileText, requiredRole: 'all' },
+    { id: 'analysis', label: 'Phân tích & Xếp hạng', icon: Calculator, requiredRole: 'all' },
+    { id: 'supply-request', label: 'Dự trù Vật tư', icon: ClipboardList, requiredRole: 'all' },
+    { id: 'users', label: 'Quản lý Tài khoản', icon: UserCog, requiredRole: 'admin' },
   ] as const;
+
+  // Filter items based on role
+  const visibleNavItems = navItems.filter(item => 
+    item.requiredRole === 'all' || (currentUser && item.requiredRole === currentUser.role)
+  );
 
   return (
     // THAY ĐỔI: print:block print:h-auto để reset chiều cao khi in
@@ -77,17 +86,17 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       )}
 
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm no-print">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-20">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm no-print h-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+          <div className="flex justify-between h-full">
             <div className="flex items-center">
-              <span className="text-2xl font-bold text-gray-900">ĐẤU THẦU VẬT TƯ - THIẾT BỊ</span>
+              <span className="text-2xl font-bold text-gray-900">ĐẤU THẦU VẬT TƯ</span>
             </div>
             
             <div className="flex items-center gap-4">
                 {/* Desktop Nav */}
-                <nav className="hidden md:flex space-x-8">
-                {navItems.map((item) => (
+                <nav className="hidden md:flex space-x-6 h-full">
+                {visibleNavItems.map((item) => (
                     <button
                     key={item.id}
                     onClick={() => onTabChange(item.id as any)}
@@ -97,29 +106,46 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                     >
-                    <item.icon className="w-5 h-5 mr-2" />
+                    <item.icon className="w-4 h-4 mr-2" />
                     {item.label}
                     </button>
                 ))}
                 </nav>
 
-                {/* Cloud Sync Button */}
-                <button
-                    onClick={() => setIsCloudModalOpen(true)}
-                    className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-blue-600 transition-colors focus:outline-none"
-                    title="Đồng bộ Google Sheets"
-                >
-                    <Cloud className="w-6 h-6" />
-                </button>
+                <div className="hidden md:flex items-center border-l border-gray-200 pl-4 ml-2 space-x-2">
+                    {/* Cloud Sync Button */}
+                    <button
+                        onClick={() => setIsCloudModalOpen(true)}
+                        className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-blue-600 transition-colors focus:outline-none"
+                        title="Đồng bộ Google Sheets"
+                    >
+                        <Cloud className="w-5 h-5" />
+                    </button>
 
-                {/* Share Button */}
-                <button
-                    onClick={handleShare}
-                    className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-blue-600 transition-colors focus:outline-none"
-                    title="Chia sẻ liên kết"
-                >
-                    <Share2 className="w-6 h-6" />
-                </button>
+                    {/* Share Button */}
+                    <button
+                        onClick={handleShare}
+                        className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-blue-600 transition-colors focus:outline-none"
+                        title="Chia sẻ liên kết"
+                    >
+                        <Share2 className="w-5 h-5" />
+                    </button>
+                    
+                    {/* User Profile & Logout */}
+                    <div className="flex items-center gap-2 pl-2">
+                        <div className="flex flex-col items-end">
+                            <span className="text-sm font-bold text-gray-800">{currentUser?.fullName}</span>
+                            <span className="text-xs text-gray-500 capitalize">{currentUser?.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}</span>
+                        </div>
+                        <button
+                            onClick={onLogout}
+                            className="p-2 rounded-full text-red-500 hover:bg-red-50 transition-colors"
+                            title="Đăng xuất"
+                        >
+                            <LogOut className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
 
                 {/* Mobile Menu Button */}
                 <div className="flex items-center md:hidden">
@@ -138,7 +164,17 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-gray-200 bg-white">
             <div className="pt-2 pb-3 space-y-1">
-              {navItems.map((item) => (
+              <div className="px-4 py-3 border-b border-gray-100 mb-2 flex justify-between items-center">
+                  <div className="flex items-center">
+                      <User className="w-8 h-8 bg-gray-200 rounded-full p-1 text-gray-600 mr-3" />
+                      <div>
+                          <p className="font-bold text-gray-800">{currentUser?.fullName}</p>
+                          <p className="text-xs text-gray-500">{currentUser?.role}</p>
+                      </div>
+                  </div>
+                  <button onClick={onLogout} className="text-red-600 text-sm font-medium">Đăng xuất</button>
+              </div>
+              {visibleNavItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => {

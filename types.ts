@@ -52,3 +52,11 @@ export interface SupplyRequestMetadata {
   departmentHead: string;
   boardApproval: string; // Tên người duyệt hoặc để trống
 }
+
+export interface User {
+  id: string;
+  username: string;
+  password: string;
+  fullName: string;
+  role: 'admin' | 'user';
+}
