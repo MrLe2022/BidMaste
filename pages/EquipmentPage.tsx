@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Equipment } from '../types';
 import * as Storage from '../services/storage';
-import { Plus, Trash2, Upload, Search, FileDown, FileSpreadsheet, Pencil, Lock, Layers, ChevronRight, Home, CheckSquare, Square, MoreVertical, AlertOctagon, XCircle } from 'lucide-react';
+import { Plus, Trash2, Upload, Search, FileDown, FileSpreadsheet, Pencil, Lock, Layers, ChevronRight, Home, CheckSquare, Square, AlertOctagon } from 'lucide-react';
 import Modal from '../components/Modal';
 import { readExcel, exportToExcel } from '../utils/excelHelper';
 
@@ -100,6 +100,7 @@ const EquipmentPage: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
+    if (!isAdmin) return;
     if (confirm('Bạn có chắc chắn muốn xóa thiết bị này không?')) {
       const allItems = Storage.getEquipment();
       const itemToDelete = allItems.find(i => i.id === id);
@@ -115,10 +116,17 @@ const EquipmentPage: React.FC = () => {
   // --- BULK ACTIONS ---
 
   const handleSelectAll = () => {
-      if (selectedIds.size === filteredItems.length && filteredItems.length > 0) {
-          setSelectedIds(new Set());
+      // Check if ALL currently filtered items are in the selected set
+      const allSelected = filteredItems.length > 0 && filteredItems.every(i => selectedIds.has(i.id));
+
+      if (allSelected) {
+          // Deselect all visible
+          const newSet = new Set(selectedIds);
+          filteredItems.forEach(i => newSet.delete(i.id));
+          setSelectedIds(newSet);
       } else {
-          const newSet = new Set<string>();
+          // Select all visible
+          const newSet = new Set(selectedIds);
           filteredItems.forEach(i => newSet.add(i.id));
           setSelectedIds(newSet);
       }
@@ -135,6 +143,7 @@ const EquipmentPage: React.FC = () => {
   };
 
   const handleDeleteSelected = () => {
+      if (!isAdmin) return;
       if (selectedIds.size === 0) return;
       if (confirm(`Bạn có chắc chắn muốn xóa ${selectedIds.size} thiết bị đang chọn không?`)) {
           const allItems = Storage.getEquipment();
@@ -153,7 +162,6 @@ const EquipmentPage: React.FC = () => {
           return;
       }
       
-      // Calculate count first
       const allItems = Storage.getEquipment();
       const itemsInGroup = allItems.filter(i => (i.group || 'Chung') === groupFilter);
       
@@ -240,6 +248,8 @@ const EquipmentPage: React.FC = () => {
     return matchesSearch && matchesGroup;
   });
 
+  const isAllSelected = filteredItems.length > 0 && filteredItems.every(i => selectedIds.has(i.id));
+
   return (
     <div className="space-y-6">
       {/* Breadcrumbs */}
@@ -301,7 +311,7 @@ const EquipmentPage: React.FC = () => {
 
           {/* Filters Bar & Bulk Actions */}
           <div className="p-4 bg-gray-50 border-b border-gray-200 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-              {selectedIds.size > 0 ? (
+              {isAdmin && selectedIds.size > 0 ? (
                   <div className="md:col-span-12 flex items-center justify-between bg-blue-100 border border-blue-200 text-blue-800 px-4 py-2 rounded-lg animate-in fade-in duration-200">
                       <div className="font-medium flex items-center">
                           <CheckSquare className="w-5 h-5 mr-2" />
@@ -355,19 +365,21 @@ const EquipmentPage: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-4 w-12 text-center">
-                      <button 
-                        onClick={handleSelectAll}
-                        className="text-gray-500 hover:text-blue-600 focus:outline-none"
-                        title="Chọn tất cả"
-                      >
-                          {selectedIds.size > 0 && selectedIds.size === filteredItems.length ? (
-                              <CheckSquare className="w-5 h-5 text-blue-600" />
-                          ) : (
-                              <Square className="w-5 h-5" />
-                          )}
-                      </button>
-                  </th>
+                  {isAdmin && (
+                      <th className="px-4 py-4 w-12 text-center">
+                          <button 
+                            onClick={handleSelectAll}
+                            className="text-gray-500 hover:text-blue-600 focus:outline-none"
+                            title="Chọn tất cả"
+                          >
+                              {isAllSelected ? (
+                                  <CheckSquare className="w-5 h-5 text-blue-600" />
+                              ) : (
+                                  <Square className="w-5 h-5" />
+                              )}
+                          </button>
+                      </th>
+                  )}
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-32">Mã VT/TB</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Tên Vật tư / Thiết bị</th>
                   <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider w-40">Nhóm</th>
@@ -378,7 +390,7 @@ const EquipmentPage: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={isAdmin ? 6 : 5} className="px-6 py-12 text-center text-gray-500">
                       {isAdmin ? "Chưa có dữ liệu. Hãy thêm mới hoặc nhập từ Excel." : "Bạn chưa được cấp quyền xem nhóm thiết bị nào hoặc không tìm thấy kết quả."}
                     </td>
                   </tr>
@@ -387,18 +399,20 @@ const EquipmentPage: React.FC = () => {
                     const isSelected = selectedIds.has(item.id);
                     return (
                         <tr key={item.id} className={`transition-colors duration-150 group ${isSelected ? 'bg-blue-50' : 'hover:bg-blue-50/50'}`}>
-                        <td className="px-4 py-4 text-center">
-                            <button 
-                                onClick={() => toggleSelect(item.id)}
-                                className="focus:outline-none"
-                            >
-                                {isSelected ? (
-                                    <CheckSquare className="w-5 h-5 text-blue-600" />
-                                ) : (
-                                    <Square className="w-5 h-5 text-gray-300 group-hover:text-gray-400" />
-                                )}
-                            </button>
-                        </td>
+                        {isAdmin && (
+                            <td className="px-4 py-4 text-center">
+                                <button 
+                                    onClick={() => toggleSelect(item.id)}
+                                    className="focus:outline-none"
+                                >
+                                    {isSelected ? (
+                                        <CheckSquare className="w-5 h-5 text-blue-600" />
+                                    ) : (
+                                        <Square className="w-5 h-5 text-gray-300 group-hover:text-gray-400" />
+                                    )}
+                                </button>
+                            </td>
+                        )}
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-600 font-mono">{item.code}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{item.name}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
