@@ -296,6 +296,7 @@ const AnalysisPage: React.FC = () => {
                       'Tên VT/TB': q.itemName,
                       'Thông số kỹ thuật': q.itemSpecs,
                       'Hãng': q.brand,
+                      'Ghi chú': q.notes, // Added notes to export
                       'Giá': q.price,
                       'VAT': q.vatIncluded ? 'Có' : 'Không',
                       'Điểm KT': q.technicalScore,
@@ -316,6 +317,7 @@ const AnalysisPage: React.FC = () => {
                       'Thông số kỹ thuật': group.item.specs,
                       'Nhà cung cấp': q.supplierName,
                       'Hãng': q.brand,
+                      'Ghi chú': q.notes, // Added notes to export
                       'Giá': q.price,
                       'VAT': q.vatIncluded ? 'Có' : 'Không',
                       'Điểm KT': q.technicalScore,
@@ -792,6 +794,7 @@ const AnalysisPage: React.FC = () => {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Thiết bị</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Thông số kỹ thuật</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Hãng</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Ghi chú</th>
                                         <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">ĐƠN GIÁ (x1000)</th>
                                         <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Hạng</th>
                                     </tr>
@@ -809,6 +812,11 @@ const AnalysisPage: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-3 text-sm text-gray-500 border print:border-black">{q.brand}</td>
+                                            <td className="px-6 py-3 text-sm text-gray-500 border print:border-black">
+                                                <div className="max-w-xs truncate" title={q.notes}>
+                                                    {q.notes || '-'}
+                                                </div>
+                                            </td>
                                             <td className="px-6 py-3 text-sm text-right font-mono border print:border-black">{new Intl.NumberFormat('vi-VN').format(q.price / 1000)}</td>
                                             <td className="px-6 py-3 text-center border print:border-black">
                                                 {q.rank === 1 ? (
