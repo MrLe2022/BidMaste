@@ -41,6 +41,9 @@ export interface SupplyRequestItem {
   phase1Qty: number;
   phase2Qty: number;
   notes: string;
+  unitPrice?: number;
+  supplierName?: string;
+  brand?: string;
 }
 
 export interface SupplyRequestMetadata {

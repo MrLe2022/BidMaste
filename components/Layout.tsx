@@ -48,10 +48,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       setIsSyncing(true);
       setSyncMessage('Đang tải dữ liệu lên Cloud...');
       try {
-          await syncToCloud(scriptUrl);
+          const cleanUrl = scriptUrl.trim();
+          await syncToCloud(cleanUrl);
           setSyncMessage('Đồng bộ lên Cloud thành công! Dữ liệu đã được lưu vào Google Sheet.');
       } catch (e) {
-          setSyncMessage('Lỗi: Không thể kết nối đến Google Sheet. Kiểm tra lại URL.');
+          console.error(e);
+          setSyncMessage('Lỗi: Không thể kết nối đến Google Sheet. Vui lòng kiểm tra lại URL và chắc chắn bạn đã Deploy lại script.');
       } finally {
           setIsSyncing(false);
       }
@@ -67,7 +69,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       setIsSyncing(true);
       setSyncMessage('Đang tải dữ liệu từ Cloud...');
       try {
-          await syncFromCloud(scriptUrl);
+          const cleanUrl = scriptUrl.trim();
+          await syncFromCloud(cleanUrl);
           setSyncMessage('Tải dữ liệu thành công! Vui lòng tải lại trang để cập nhật.');
           setTimeout(() => window.location.reload(), 1500);
       } catch (e) {
@@ -85,10 +88,11 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
   ] as const;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col relative">
+    // THAY ĐỔI QUAN TRỌNG: print:block print:h-auto để reset chiều cao khi in
+    <div className="min-h-screen bg-gray-50 flex flex-col relative print:block print:h-auto print:overflow-visible">
       {/* Toast Notification */}
       {showShareToast && (
-          <div className="fixed top-28 right-4 z-50 animate-bounce bg-gray-800 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 transition-all">
+          <div className="fixed top-28 right-4 z-50 animate-bounce bg-gray-800 text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 transition-all no-print">
               <Check className="w-4 h-4 text-green-400" />
               <span className="text-sm font-medium">Đã sao chép liên kết!</span>
           </div>
@@ -186,12 +190,12 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 print:p-0 print:max-w-none">
         {children}
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-6 mt-auto">
+      <footer className="bg-white border-t border-gray-200 py-6 mt-auto print:mt-0 print:border-none print:py-2">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center text-center">
             <p className="text-sm font-bold text-gray-700 uppercase tracking-wide">
                 Bản quyền ứng dụng thuộc bộ phận QLCL - Minh Phát Khánh An
@@ -206,9 +210,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
       <Modal isOpen={isCloudModalOpen} onClose={() => setIsCloudModalOpen(false)} title="Đồng bộ Google Sheets">
           <div className="space-y-6">
               <div className="bg-blue-50 p-4 rounded text-sm text-blue-800">
-                  Tính năng này giúp bạn lưu trữ dữ liệu lên Google Sheet để chia sẻ hoặc sao lưu.
-                  <br/>
-                  <span className="font-bold">Lưu ý:</span> Bạn cần có Web App URL từ Google Apps Script.
+                  <p>Tính năng này giúp bạn lưu trữ dữ liệu lên Google Sheet để chia sẻ hoặc sao lưu.</p>
+                  <p className="mt-2 font-bold text-red-600">QUAN TRỌNG: Nếu bạn sửa code Google Script, bạn PHẢI nhấn "Deploy" -> "New Deployment" để lấy URL mới. URL cũ sẽ KHÔNG hoạt động.</p>
               </div>
               
               <div>

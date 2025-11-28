@@ -363,7 +363,8 @@ const AnalysisPage: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6 pb-12">
+    // THAY ĐỔI: print:block để reset layout
+    <div className="space-y-6 pb-12 w-full print:block print:w-full">
       {/* Header & Controls */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 no-print">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
@@ -453,18 +454,19 @@ const AnalysisPage: React.FC = () => {
       </div>
 
       {/* Report Content Area */}
-      <div id="report-container" className="space-y-8 bg-transparent">
+      {/* THAY ĐỔI: bg-transparent để in ra nền trắng */}
+      <div id="report-container" className="space-y-8 bg-transparent print:space-y-4">
         
         {/* VIEW: FULL ANALYSIS */}
         {reportType === 'full' && analyzedData.map((group) => (
-            <div key={group.item.id} className={`pdf-item bg-white shadow-md rounded-xl overflow-hidden border break-inside-avoid page-break mb-6 ${group.item.code === 'ERROR' ? 'border-red-300 ring-2 ring-red-100' : 'border-gray-200'}`}>
-                <div className={`px-6 py-4 border-b flex flex-col md:flex-row justify-between md:items-center gap-2 ${group.item.code === 'ERROR' ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
+            <div key={group.item.id} className={`pdf-item bg-white shadow-md rounded-xl overflow-hidden border break-inside-avoid page-break mb-6 print:shadow-none print:border-gray-500 print:mb-4 ${group.item.code === 'ERROR' ? 'border-red-300 ring-2 ring-red-100' : 'border-gray-200'}`}>
+                <div className={`px-6 py-4 border-b flex flex-col md:flex-row justify-between md:items-center gap-2 print:border-gray-500 ${group.item.code === 'ERROR' ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200 print:bg-gray-200'}`}>
                     <div>
                         <h3 className={`text-lg font-bold flex items-center ${group.item.code === 'ERROR' ? 'text-red-800' : 'text-gray-900'}`}>
                             {group.item.code === 'ERROR' ? (
                                 <AlertTriangle className="w-5 h-5 mr-2 text-red-600" />
                             ) : (
-                                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-2 font-mono">{group.item.code}</span>
+                                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-2 font-mono print:border print:border-gray-500">{group.item.code}</span>
                             )}
                             {group.item.name}
                         </h3>
@@ -479,27 +481,27 @@ const AnalysisPage: React.FC = () => {
 
                 <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className={`${group.item.code === 'ERROR' ? 'lg:col-span-3' : 'lg:col-span-2'} overflow-x-auto`}>
-                        <table className="min-w-full divide-y divide-gray-200">
+                        <table className="min-w-full divide-y divide-gray-200 print:divide-gray-500 w-full">
                             <thead>
-                                <tr className="bg-gray-50">
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Hạng</th>
-                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Nhà cung cấp</th>
-                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">ĐƠN GIÁ (x1000)</th>
-                                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">KT</th>
-                                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Tổng</th>
+                                <tr className="bg-gray-50 print:bg-gray-200">
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase print:text-black border print:border-black">Hạng</th>
+                                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase print:text-black border print:border-black">Nhà cung cấp</th>
+                                    <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase print:text-black border print:border-black">ĐƠN GIÁ (x1000)</th>
+                                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase print:text-black border print:border-black">KT</th>
+                                    <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase print:text-black border print:border-black">Tổng</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody className="divide-y divide-gray-200 print:divide-gray-500">
                             {group.quotes.map((q) => {
                                 const isPriceError = q.price <= 0;
                                 const isCodeError = group.item.code === 'ERROR';
                                 const hasError = isPriceError || isCodeError;
 
                                 return (
-                                    <tr key={q.id} className={`${q.rank === 1 && !hasError ? "bg-green-50" : ""} ${hasError ? "bg-red-50" : ""}`}>
-                                    <td className="px-3 py-3 whitespace-nowrap">
+                                    <tr key={q.id} className={`${q.rank === 1 && !hasError ? "bg-green-50 print:bg-transparent" : ""} ${hasError ? "bg-red-50" : ""}`}>
+                                    <td className="px-3 py-3 whitespace-nowrap border print:border-black">
                                         <div className="flex items-center">
-                                            {q.rank === 1 && !hasError && <Award className="w-4 h-4 text-yellow-500 mr-1" />}
+                                            {q.rank === 1 && !hasError && <Award className="w-4 h-4 text-yellow-500 mr-1 print:text-black" />}
                                             {hasError ? (
                                                 <AlertCircle className="w-4 h-4 text-red-500" title="Báo giá không hợp lệ" />
                                             ) : (
@@ -507,7 +509,7 @@ const AnalysisPage: React.FC = () => {
                                             )}
                                         </div>
                                     </td>
-                                    <td className="px-3 py-3">
+                                    <td className="px-3 py-3 border print:border-black">
                                         <div className="text-sm font-medium text-gray-900 flex items-center">
                                             {q.supplierName}
                                             {isCodeError && (
@@ -518,21 +520,21 @@ const AnalysisPage: React.FC = () => {
                                         </div>
                                         <div className="text-xs text-gray-500">{q.brand}</div>
                                     </td>
-                                    <td className="px-3 py-3 whitespace-nowrap text-right text-sm">
+                                    <td className="px-3 py-3 whitespace-nowrap text-right text-sm border print:border-black">
                                         <div className={`font-mono flex items-center justify-end ${isPriceError ? 'text-red-600 font-bold' : ''}`}>
                                             {isPriceError && <AlertCircle className="w-3 h-3 mr-1" />}
                                             {new Intl.NumberFormat('vi-VN').format(q.price / 1000)}
                                         </div>
                                         <div className="text-xs text-gray-500">{q.vatIncluded ? '(+VAT)' : '(Chưa VAT)'}</div>
                                     </td>
-                                    <td className="px-3 py-3 whitespace-nowrap text-center text-sm">
+                                    <td className="px-3 py-3 whitespace-nowrap text-center text-sm border print:border-black">
                                         <div className="font-semibold">{q.technicalScore}</div>
                                     </td>
-                                    <td className="px-3 py-3 whitespace-nowrap text-center">
+                                    <td className="px-3 py-3 whitespace-nowrap text-center border print:border-black">
                                         {hasError ? (
                                             <span className="text-xs text-red-500 italic">Lỗi</span>
                                         ) : (
-                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold bg-gray-100 text-gray-800">
+                                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold bg-gray-100 text-gray-800 print:bg-transparent print:border print:border-black">
                                                 {q.totalScore.toFixed(2)}
                                             </span>
                                         )}
@@ -545,7 +547,7 @@ const AnalysisPage: React.FC = () => {
                     </div>
 
                     {group.item.code !== 'ERROR' && (
-                        <div className="h-64 lg:h-auto min-h-[300px] border rounded-lg p-2 bg-gray-50 relative">
+                        <div className="h-64 lg:h-auto min-h-[300px] border rounded-lg p-2 bg-gray-50 relative print:border-gray-500 print:bg-white">
                             <h4 className="text-xs font-semibold text-gray-500 mb-2 absolute top-2 left-2 z-10">So sánh Điểm</h4>
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={group.quotes} layout="vertical" margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -573,45 +575,46 @@ const AnalysisPage: React.FC = () => {
 
         {/* VIEW: CONDENSED REPORT */}
         {reportType === 'condensed' && (
-             <div className="pdf-item bg-white shadow-md rounded-xl overflow-hidden border border-gray-200 break-inside-avoid page-break">
-                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                     <h3 className="text-xl font-bold text-gray-900">Báo cáo Rút gọn (Đơn vị trúng thầu)</h3>
-                     <p className="text-sm text-gray-500">Tổng quan nhà cung cấp được chọn cho từng thiết bị.</p>
+             <div className="pdf-item bg-white shadow-md rounded-xl overflow-hidden border border-gray-200 break-inside-avoid page-break print:shadow-none print:border-none">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 print:bg-transparent print:border-none">
+                     <h3 className="text-xl font-bold text-gray-900 uppercase text-center mb-4 hidden print:block">BÁO CÁO RÚT GỌN KẾT QUẢ ĐẤU THẦU</h3>
+                     <h3 className="text-xl font-bold text-gray-900 print:hidden">Báo cáo Rút gọn (Đơn vị trúng thầu)</h3>
+                     <p className="text-sm text-gray-500 print:hidden">Tổng quan nhà cung cấp được chọn cho từng thiết bị.</p>
                 </div>
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-gray-200 print:divide-gray-500 w-full">
+                        <thead className="bg-gray-50 print:bg-gray-200">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã VT/TB</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên VT/TB</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thông số kỹ thuật</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NCC được chọn (Hạng 1)</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ĐƠN GIÁ (x1000)</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Tổng điểm</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Mã VT/TB</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Tên VT/TB</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Thông số kỹ thuật</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">NCC được chọn (Hạng 1)</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">ĐƠN GIÁ (x1000)</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Tổng điểm</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
+                        <tbody className="bg-white divide-y divide-gray-200 print:divide-gray-500">
                             {analyzedData.map(group => {
                                 if (group.item.code === 'ERROR') return null; // Skip errors in condensed
                                 const winner = group.quotes.find(q => q.rank === 1);
                                 return (
-                                    <tr key={group.item.id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">{group.item.code}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-900">{group.item.name}</td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">
+                                    <tr key={group.item.id} className="hover:bg-gray-50 print:bg-transparent">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600 border print:border-black print:text-black">{group.item.code}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-900 border print:border-black print:text-black">{group.item.name}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-500 border print:border-black print:text-black">
                                             <div className="max-w-xs truncate" title={group.item.specs}>
                                                 {group.item.specs}
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-700">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-700 border print:border-black print:text-black">
                                             {winner ? winner.supplierName : <span className="text-gray-400">Không có báo giá</span>}
                                             {winner && <span className="text-xs text-gray-500 block">{winner.brand}</span>}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono border print:border-black print:text-black">
                                             {winner ? new Intl.NumberFormat('vi-VN').format(winner.price / 1000) : '-'}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                            {winner ? <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full font-bold">{winner.totalScore.toFixed(2)}</span> : '-'}
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center border print:border-black print:text-black">
+                                            {winner ? <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full font-bold print:bg-transparent print:border print:border-black">{winner.totalScore.toFixed(2)}</span> : '-'}
                                         </td>
                                     </tr>
                                 )
@@ -626,7 +629,7 @@ const AnalysisPage: React.FC = () => {
         {reportType === 'supplier' && (
             <div className="space-y-6">
                  {/* Summary Chart for Suppliers */}
-                 <div className="pdf-item bg-white p-6 rounded-xl border border-gray-200 break-inside-avoid">
+                 <div className="pdf-item bg-white p-6 rounded-xl border border-gray-200 break-inside-avoid print:hidden">
                      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
                         Biểu đồ Hiệu suất Nhà cung cấp 
                         <span className="ml-2 text-xs font-normal text-gray-500 bg-gray-100 px-2 py-1 rounded-full flex items-center">
@@ -661,8 +664,8 @@ const AnalysisPage: React.FC = () => {
                      </div>
                  </div>
 
-                <div className="pdf-item bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4 break-inside-avoid">
-                     <h3 className="text-lg font-bold text-blue-800 flex justify-between items-center">
+                <div className="pdf-item bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4 break-inside-avoid print:bg-white print:border-none">
+                     <h3 className="text-lg font-bold text-blue-800 flex justify-between items-center print:hidden">
                          Tổng hợp Số liệu
                          {selectedSupplier && (
                              <button 
@@ -673,7 +676,7 @@ const AnalysisPage: React.FC = () => {
                              </button>
                          )}
                      </h3>
-                     <p className="text-sm text-blue-600/70 mb-2">Nhấn vào thẻ để xem chi tiết nhà cung cấp.</p>
+                     <p className="text-sm text-blue-600/70 mb-2 print:hidden">Nhấn vào thẻ để xem chi tiết nhà cung cấp.</p>
                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
                          {supplierReport.map(s => {
                              let bgClass = 'bg-gray-50 border-gray-200';
@@ -708,15 +711,15 @@ const AnalysisPage: React.FC = () => {
                                 <div 
                                     key={s.name} 
                                     onClick={() => setSelectedSupplier(s.name === selectedSupplier ? null : s.name)}
-                                    className={`${bgClass} border p-3 rounded shadow-sm transition-all hover:shadow-md cursor-pointer`}
+                                    className={`${bgClass} border p-3 rounded shadow-sm transition-all hover:shadow-md cursor-pointer print:border-black print:bg-white`}
                                 >
-                                     <div className={`text-sm font-medium truncate ${textClass}`} title={s.name}>{s.name}</div>
-                                     <div className={`text-2xl font-bold ${textClass} mt-1`}>
-                                        {s.wins} <span className={`text-xs font-normal ${subTextClass}`}>gói trúng</span>
+                                     <div className={`text-sm font-medium truncate ${textClass} print:text-black`} title={s.name}>{s.name}</div>
+                                     <div className={`text-2xl font-bold ${textClass} mt-1 print:text-black`}>
+                                        {s.wins} <span className={`text-xs font-normal ${subTextClass} print:text-black`}>gói trúng</span>
                                      </div>
                                      <div className="flex justify-between items-center text-xs mt-2 pt-2 border-t border-black/5">
-                                        <span className={subTextClass}>Tổng: {s.totalItems}</span>
-                                        <span className={`font-bold ${textClass}`}>{Math.round(s.winRate)}%</span>
+                                        <span className={`${subTextClass} print:text-black`}>Tổng: {s.totalItems}</span>
+                                        <span className={`font-bold ${textClass} print:text-black`}>{Math.round(s.winRate)}%</span>
                                      </div>
                                 </div>
                              )
@@ -776,40 +779,40 @@ const AnalysisPage: React.FC = () => {
                      </div>
                 ) : (
                     processedSupplierData.map(supplier => (
-                        <div key={supplier.name} className="pdf-item bg-white shadow-md rounded-xl overflow-hidden border border-gray-200 break-inside-avoid page-break">
-                            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                        <div key={supplier.name} className="pdf-item bg-white shadow-md rounded-xl overflow-hidden border border-gray-200 break-inside-avoid page-break print:border-none print:shadow-none">
+                            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center print:bg-transparent print:border-b-2 print:border-black">
                                 <h3 className="text-lg font-bold text-gray-900">{supplier.name}</h3>
-                                <span className={`text-sm px-3 py-1 rounded-full font-bold ${supplier.winRate > 50 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                                <span className={`text-sm px-3 py-1 rounded-full font-bold ${supplier.winRate > 50 ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'} print:border print:border-black print:bg-transparent print:text-black`}>
                                     Tỷ lệ trúng: {Math.round(supplier.winRate)}%
                                 </span>
                             </div>
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
+                            <table className="min-w-full divide-y divide-gray-200 print:divide-gray-500 w-full">
+                                <thead className="bg-gray-50 print:bg-gray-200">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thiết bị</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thông số kỹ thuật</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hãng</th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">ĐƠN GIÁ (x1000)</th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Hạng</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Thiết bị</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Thông số kỹ thuật</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Hãng</th>
+                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">ĐƠN GIÁ (x1000)</th>
+                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Hạng</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-200">
+                                <tbody className="divide-y divide-gray-200 print:divide-gray-500">
                                     {supplier.filteredQuotes.map((q, idx) => (
-                                        <tr key={idx} className={q.rank === 1 ? 'bg-green-50' : ''}>
-                                            <td className="px-6 py-3 text-sm text-gray-900">
+                                        <tr key={idx} className={q.rank === 1 ? 'bg-green-50 print:bg-transparent' : ''}>
+                                            <td className="px-6 py-3 text-sm text-gray-900 border print:border-black">
                                                 <span className="font-mono text-xs text-gray-500 mr-2">{q.itemCode}</span>
                                                 {q.itemName}
                                             </td>
-                                            <td className="px-6 py-3 text-sm text-gray-500">
+                                            <td className="px-6 py-3 text-sm text-gray-500 border print:border-black">
                                                 <div className="max-w-xs truncate" title={q.itemSpecs}>
                                                     {q.itemSpecs}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-3 text-sm text-gray-500">{q.brand}</td>
-                                            <td className="px-6 py-3 text-sm text-right font-mono">{new Intl.NumberFormat('vi-VN').format(q.price / 1000)}</td>
-                                            <td className="px-6 py-3 text-center">
+                                            <td className="px-6 py-3 text-sm text-gray-500 border print:border-black">{q.brand}</td>
+                                            <td className="px-6 py-3 text-sm text-right font-mono border print:border-black">{new Intl.NumberFormat('vi-VN').format(q.price / 1000)}</td>
+                                            <td className="px-6 py-3 text-center border print:border-black">
                                                 {q.rank === 1 ? (
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 print:border print:border-black print:bg-transparent print:text-black">
                                                         <Award className="w-3 h-3 mr-1"/> Thắng
                                                     </span>
                                                 ) : (
@@ -828,79 +831,80 @@ const AnalysisPage: React.FC = () => {
 
         {/* VIEW: BY BRAND */}
         {reportType === 'brand' && (
-            <div className="pdf-item bg-white shadow-md rounded-xl overflow-hidden border border-gray-200 break-inside-avoid page-break">
-                 <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                     <h3 className="text-xl font-bold text-gray-900">Phân tích theo Hãng/Xuất xứ</h3>
-                     <p className="text-sm text-gray-500">Tần suất và phân bố các hãng sản xuất trong hồ sơ thầu. Nhấn vào hàng để xem chi tiết.</p>
+            <div className="pdf-item bg-white shadow-md rounded-xl overflow-hidden border border-gray-200 break-inside-avoid page-break print:shadow-none print:border-none">
+                 <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 print:bg-transparent print:border-none">
+                     <h3 className="text-xl font-bold text-gray-900 uppercase text-center hidden print:block">BÁO CÁO PHÂN TÍCH THEO HÃNG SẢN XUẤT</h3>
+                     <h3 className="text-xl font-bold text-gray-900 print:hidden">Phân tích theo Hãng/Xuất xứ</h3>
+                     <p className="text-sm text-gray-500 print:hidden">Tần suất và phân bố các hãng sản xuất trong hồ sơ thầu. Nhấn vào hàng để xem chi tiết.</p>
                 </div>
                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-gray-200 print:divide-gray-500 w-full">
+                        <thead className="bg-gray-50 print:bg-gray-200">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-10"></th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hãng / Xuất xứ</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Tổng tham gia</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Số lượng Trúng thầu</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thiết bị mẫu</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-10 border print:border-black print:text-black"></th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Hãng / Xuất xứ</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Tổng tham gia</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Số lượng Trúng thầu</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border print:border-black print:text-black">Thiết bị mẫu</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y divide-gray-200 print:divide-gray-500">
                             {brandReport.sort((a,b) => b.count - a.count).map(brand => (
                                 <React.Fragment key={brand.name}>
                                     <tr 
-                                        className={`cursor-pointer transition-colors ${expandedBrand === brand.name ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                                        className={`cursor-pointer transition-colors ${expandedBrand === brand.name ? 'bg-blue-50' : 'hover:bg-gray-50'} print:bg-transparent`}
                                         onClick={() => setExpandedBrand(expandedBrand === brand.name ? null : brand.name)}
                                     >
-                                        <td className="px-6 py-4 text-center">
+                                        <td className="px-6 py-4 text-center border print:border-black">
                                             {expandedBrand === brand.name ? (
-                                                <ChevronDown className="w-4 h-4 text-blue-600" />
+                                                <ChevronDown className="w-4 h-4 text-blue-600 print:hidden" />
                                             ) : (
-                                                <ChevronRight className="w-4 h-4 text-gray-400" />
+                                                <ChevronRight className="w-4 h-4 text-gray-400 print:hidden" />
                                             )}
                                         </td>
-                                        <td className="px-6 py-4 text-sm font-bold text-gray-900">{brand.name}</td>
-                                        <td className="px-6 py-4 text-center text-sm text-gray-900">{brand.count}</td>
-                                        <td className="px-6 py-4 text-center text-sm font-bold text-blue-600">
+                                        <td className="px-6 py-4 text-sm font-bold text-gray-900 border print:border-black">{brand.name}</td>
+                                        <td className="px-6 py-4 text-center text-sm text-gray-900 border print:border-black">{brand.count}</td>
+                                        <td className="px-6 py-4 text-center text-sm font-bold text-blue-600 border print:border-black">
                                             {brand.winningCount > 0 ? (
-                                                <div className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                                                <div className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full print:bg-transparent print:text-black">
                                                     {brand.winningCount}
                                                 </div>
                                             ) : '-'}
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">
+                                        <td className="px-6 py-4 text-sm text-gray-500 border print:border-black">
                                             {brand.quotes.slice(0, 3).map(q => q.itemName).join(', ')}
                                             {brand.quotes.length > 3 && '...'}
                                         </td>
                                     </tr>
-                                    {/* Expanded Detail Row */}
-                                    {expandedBrand === brand.name && (
-                                        <tr className="bg-gray-50">
-                                            <td colSpan={5} className="px-6 py-4 border-t border-gray-100">
-                                                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                                    {/* Expanded Detail Row - Always show in print if it has content */}
+                                    {(expandedBrand === brand.name) && (
+                                        <tr className="bg-gray-50 print:bg-transparent">
+                                            <td colSpan={5} className="px-6 py-4 border-t border-gray-100 print:border-black">
+                                                <div className="bg-white rounded-lg border border-gray-200 p-4 print:border-none">
                                                     <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center">
-                                                        <CheckCircle2 className="w-4 h-4 text-green-600 mr-2" />
+                                                        <CheckCircle2 className="w-4 h-4 text-green-600 mr-2 print:hidden" />
                                                         Danh sách {brand.winningCount} thiết bị trúng thầu của {brand.name}:
                                                     </h4>
                                                     {brand.winningCount > 0 ? (
                                                         <div className="overflow-x-auto">
-                                                            <table className="min-w-full divide-y divide-gray-100 text-sm">
+                                                            <table className="min-w-full divide-y divide-gray-100 text-sm print:divide-gray-500 w-full">
                                                                 <thead>
-                                                                    <tr className="bg-gray-50 text-gray-500">
-                                                                        <th className="px-3 py-2 text-left font-medium">Mã VT/TB</th>
-                                                                        <th className="px-3 py-2 text-left font-medium">Tên VT/TB</th>
-                                                                        <th className="px-3 py-2 text-left font-medium">Thông số</th>
-                                                                        <th className="px-3 py-2 text-left font-medium">Nhà cung cấp</th>
-                                                                        <th className="px-3 py-2 text-right font-medium">Giá (x1000)</th>
+                                                                    <tr className="bg-gray-50 text-gray-500 print:bg-gray-200 print:text-black">
+                                                                        <th className="px-3 py-2 text-left font-medium border print:border-black">Mã VT/TB</th>
+                                                                        <th className="px-3 py-2 text-left font-medium border print:border-black">Tên VT/TB</th>
+                                                                        <th className="px-3 py-2 text-left font-medium border print:border-black">Thông số</th>
+                                                                        <th className="px-3 py-2 text-left font-medium border print:border-black">Nhà cung cấp</th>
+                                                                        <th className="px-3 py-2 text-right font-medium border print:border-black">Giá (x1000)</th>
                                                                     </tr>
                                                                 </thead>
-                                                                <tbody className="divide-y divide-gray-100">
+                                                                <tbody className="divide-y divide-gray-100 print:divide-gray-500">
                                                                     {brand.winningQuotes.map((q, idx) => (
-                                                                        <tr key={idx} className="hover:bg-gray-50">
-                                                                            <td className="px-3 py-2 font-mono text-blue-600">{q.itemCode}</td>
-                                                                            <td className="px-3 py-2">{q.itemName}</td>
-                                                                            <td className="px-3 py-2 text-gray-500 max-w-xs truncate" title={q.itemSpecs}>{q.itemSpecs}</td>
-                                                                            <td className="px-3 py-2">{q.supplierName}</td>
-                                                                            <td className="px-3 py-2 text-right font-mono font-medium">
+                                                                        <tr key={idx} className="hover:bg-gray-50 print:bg-transparent">
+                                                                            <td className="px-3 py-2 font-mono text-blue-600 border print:border-black print:text-black">{q.itemCode}</td>
+                                                                            <td className="px-3 py-2 border print:border-black">{q.itemName}</td>
+                                                                            <td className="px-3 py-2 text-gray-500 max-w-xs truncate border print:border-black print:text-black" title={q.itemSpecs}>{q.itemSpecs}</td>
+                                                                            <td className="px-3 py-2 border print:border-black">{q.supplierName}</td>
+                                                                            <td className="px-3 py-2 text-right font-mono font-medium border print:border-black">
                                                                                 {new Intl.NumberFormat('vi-VN').format(q.price / 1000)}
                                                                             </td>
                                                                         </tr>

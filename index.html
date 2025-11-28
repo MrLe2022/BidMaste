@@ -12,104 +12,108 @@
         /* 1. Thiết lập trang in */
         @page {
           margin: 10mm;
-          size: auto;
+          size: auto; /* Tự động khổ giấy */
         }
         
-        /* 2. Reset Layout của ứng dụng SPA (React) */
-        body, html, #root, main, .min-h-screen {
-          background-color: white !important;
-          color: black !important;
+        /* 2. Reset Layout toàn bộ ứng dụng để nội dung tràn ra nhiều trang */
+        body, html, #root {
           height: auto !important;
           min-height: auto !important;
-          width: 100% !important;
-          margin: 0 !important;
-          padding: 0 !important;
           overflow: visible !important;
           display: block !important;
-          position: static !important;
         }
 
-        /* 3. Ẩn các thành phần giao diện không cần thiết */
-        header, nav, button, .no-print, .fixed, .sticky {
+        /* 3. Phá vỡ các vùng cuộn (scrollable areas) */
+        .overflow-y-auto, .overflow-x-auto, .overflow-hidden {
+          overflow: visible !important;
+          height: auto !important;
+          max-height: none !important;
+        }
+
+        /* 4. Ẩn giao diện điều khiển */
+        header, nav, button, .no-print, .fixed, .sticky, footer.no-print {
           display: none !important;
         }
 
-        /* 4. Mở rộng khung nội dung */
-        .max-w-7xl {
+        /* 5. Mở rộng khung nội dung tối đa */
+        main, .max-w-7xl {
+          width: 100% !important;
           max-width: 100% !important;
-          padding-left: 0 !important;
-          padding-right: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          position: static !important;
+          flex: none !important;
+          display: block !important;
         }
 
-        /* 5. Đảm bảo màu nền và border được in ra */
+        /* 6. Đảm bảo màu nền và border in ra rõ nét */
         * {
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
-          box-shadow: none !important;
         }
 
-        /* 6. Xử lý ngắt trang thông minh */
-        .page-break, .pdf-item {
-          break-inside: avoid;
-          page-break-inside: avoid;
-          margin-bottom: 20px;
-          border: 1px solid #ddd !important;
-          display: block !important; /* Đảm bảo block để không bị flex làm hỏng */
+        /* 7. Xử lý ngắt trang */
+        .page-break {
+          page-break-before: always;
         }
         
-        tr, td, th {
+        tr, td, th, .break-inside-avoid {
           page-break-inside: avoid !important;
         }
 
         thead {
-          display: table-header-group; /* Lặp lại header khi sang trang mới */
+          display: table-header-group; 
         }
 
-        /* 7. Sửa lỗi biểu đồ Recharts khi in */
+        /* 8. Sửa lỗi biểu đồ Recharts */
         .recharts-responsive-container {
             width: 100% !important;
-            height: 350px !important; /* Chiều cao cố định để render được trên giấy */
-            max-height: 350px !important;
+            height: 350px !important; 
+            page-break-inside: avoid !important;
         }
         
-        /* 8. Tinh chỉnh bảng */
+        /* 9. Tinh chỉnh bảng dữ liệu */
         table {
             width: 100% !important;
             border-collapse: collapse !important;
         }
         th, td {
-            border: 1px solid #000 !important; /* Viền đen rõ ràng cho máy in */
-            padding: 4px 8px !important;
-            font-size: 10pt !important;
+            border: 1px solid #333 !important;
+            padding: 6px !important;
+            font-size: 11px !important; /* Chữ nhỏ lại một chút để vừa giấy A4 */
+            color: #000 !important;
         }
         
-        /* Hiển thị Footer bản quyền khi in */
+        /* Footer bản quyền khi in */
         footer {
             display: block !important;
-            position: fixed;
-            bottom: 0;
+            position: relative !important; /* Không dùng fixed để tránh đè nội dung */
+            margin-top: 20px;
             width: 100%;
             border: none !important;
             text-align: center;
+            color: #666;
+            font-size: 10px;
         }
       }
     </style>
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "recharts": "https://aistudiocdn.com/recharts@^3.5.0",
-    "xlsx": "https://esm.sh/xlsx@0.18.5",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
-    "vite": "https://aistudiocdn.com/vite@^7.2.4"
+    "xlsx": "https://aistudiocdn.com/xlsx@^0.18.5",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.0"
   }
 }
 </script>
 </head>
   <body class="bg-gray-50 text-gray-900 font-sans antialiased">
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
